@@ -10,6 +10,17 @@ module BackupClient
         @algorithm = algorithm.freeze
       end
 
+      def to_s
+        "#{@algorithm}:#{@checksum}"
+      end
+
+      def to_json
+        {
+          algorithm: @algorithm,
+          checksum: @checksum
+        }
+      end
+
       def ==(other)
         return false if other.algorithm != @algorithm
         return false if other.checksum != @checksum
