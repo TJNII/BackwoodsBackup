@@ -1,23 +1,29 @@
+require 'json'
+
 module BackupClient
   module Stat
     class StatValues
       attr_reader :mode, :uid, :gid, :size
 
-      def initialize(mode:, uid:, gid:, :size:)
-        @mode = file_stat.mode
-        @uid = file_stat.uid
-        @gid = file_stat.gid
-        @size = file_stat.size
+      def initialize(mode:, uid:, gid:, size:)
+        @mode = mode
+        @uid  = uid
+        @gid  = gid
+        @size = size
       end
 
-      def to_json
-        return JSON.dump({}.tap do |hash|
-                           instance_variables.each do |var|
-                             hash[var.to_s.tr('@', '')] = instance_variable_get(var)
-                           end
-                         end)
+      def to_hash
+        {}.tap do |hash|
+          instance_variables.each do |var|
+            hash[var.to_s.tr('@', '')] = instance_variable_get(var)
+          end
+        end
       end
 
+      def to_json(options = {})
+        JSON.pretty_generate(to_hash, options)
+      end
+    
       def file_type
         # These masks are from inode(7).
         # TODO: Per inode(7) there are C macros for this, are they exposed in Ruby against a mode?
@@ -53,11 +59,8 @@ module BackupClient
       # [amc]time: Unsupported
       StatValues.new(mode: file_stat.mode,
                      uid: file_stat.uid,
-                     gid: file_stat.gid
+                     gid: file_stat.gid,
                      size: file_stat.size)
     end
   end
 end
-
-    
-    
