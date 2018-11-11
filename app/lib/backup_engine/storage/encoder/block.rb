@@ -24,13 +24,14 @@ module BackupEngine
           @communicator.exists?(path: metadata_path)
         end
 
-        def back_up_block(encrypted_data:, encrypted_checksum:)
+        def back_up_block(encrypted_data:, encrypted_checksum:, compression_metadata:)
           @communicator.upload(path: data_path,
                                payload: encrypted_data.payload)
 
           @communicator.upload(path: metadata_path,
                                payload: JSON.dump(version: VERSION,
                                                   data_path: data_path,
+                                                  compression_metadata: compression_metadata,
                                                   encryption_algorithm: encrypted_data.algorithm,
                                                   encrypted_checksum: encrypted_checksum,
                                                   encrypted_length: encrypted_data.length,

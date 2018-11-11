@@ -3,11 +3,12 @@ require_relative '../storage/encoder/block.rb'
 module BackupEngine
   module BackupClient
     class Block
-      attr_reader :length
+      attr_reader :length, :compression_percent
 
-      def initialize(data:, api_communicator:, checksum_engine:, encryption_engine:)
+      def initialize(data:, api_communicator:, checksum_engine:, encryption_engine:, compression_engine:)
         @checksum_engine = checksum_engine
         @encryption_engine = encryption_engine
+        @compression_engine = compression_engine
 
         @data = data.freeze
         @length = data.length
@@ -35,10 +36,13 @@ module BackupEngine
       end
 
       def back_up
-        encrypted_data = @encryption_engine.encrypt(@data)
+        compressed_data = @compression_engine.compress(@data)
+        @compression_percent = (compressed_data.length.to_f / @length * 100)
+        encrypted_data = @encryption_engine.encrypt(compressed_data.payload)
         encrypted_checksum = @checksum_engine.block(encrypted_data.payload)
 
-        @block_encoder.back_up_block(encrypted_data: encrypted_data,
+        @block_encoder.back_up_block(compression_metadata: compressed_data.metadata,
+                                     encrypted_data: encrypted_data,
                                      encrypted_checksum: encrypted_checksum)
       end
     end

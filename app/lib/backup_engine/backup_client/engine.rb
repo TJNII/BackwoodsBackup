@@ -11,13 +11,14 @@ module BackupEngine
     end
 
     class Engine
-      attr_reader :checksum_engine, :api_communicator, :metadata_encoder, :encryption_engine, :chunk_size
+      attr_reader :checksum_engine, :api_communicator, :metadata_encoder, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(api_communicator:, checksum_engine:, encryption_engine:, host:, chunk_size:, logger:)
+      def initialize(api_communicator:, checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
         @api_communicator = api_communicator
         @metadata_encoder = BackupEngine::Storage::Encoder::Metadata.new(communicator: api_communicator, backup_host: host)
         @encryption_engine = encryption_engine
+        @compression_engine = compression_engine
         @chunk_size = chunk_size
         @logger = logger
       end
@@ -76,7 +77,8 @@ module BackupEngine
             block = Block.new(data: tmpfile.read(@chunk_size),
                               api_communicator: @api_communicator,
                               checksum_engine: @checksum_engine,
-                              encryption_engine: @encryption_engine)
+                              encryption_engine: @encryption_engine,
+                              compression_engine: @compression_engine)
             if block.length != @chunk_size && !tmpfile.eof?
               raise("INTERNAL ERROR: Short Read: #{block.length}/#{@chunk_size}")
             end
@@ -85,7 +87,7 @@ module BackupEngine
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes using existing block")
             else 
               block.back_up
-              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block")
+              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{block.compression_percent}%")
             end
 
             block_map.push(offset: offset, metadata_path: block.metadata_path)
