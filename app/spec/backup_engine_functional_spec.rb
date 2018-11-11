@@ -3,7 +3,7 @@ require_relative 'spec_helper.rb'
 require_relative '../lib/backup_engine/communicator/filesystem.rb'
 require_relative '../lib/backup_engine/checksums/engine.rb'
 require_relative '../lib/backup_engine/encryption/engine.rb'
-require_relative '../lib/backup_engine/client/engine.rb'
+require_relative '../lib/backup_engine/backup_client/engine.rb'
 
 require 'logger'
 
@@ -12,18 +12,17 @@ describe 'Backup Engine: Functional' do
   target_paths = Pathname.new('/').children.reject { |path| %w[/proc /sys /dev /tmp].include? path.to_s }.freeze
 
   before :all do
-
     @communicator = BackupEngine::Communicator::Filesystem.new(base_path: '/tmp/test_backup_output')
     @checksum_engine = BackupEngine::Checksums::Engine.new("sha256")
     @encryption_engine = BackupEngine::Encryption::Engine.new("none")
     @logger = Logger.new(STDOUT)
 
-    @engine = BackupEngine::Client::Engine.new(api_communicator: @communicator,
-                                               checksum_engine: @checksum_engine,
-                                               encryption_engine: @encryption_engine,
-                                               host: 'testhost',
-                                               chunk_size: (1024 * 1024 * 25),
-                                               logger: @logger)
+    @engine = BackupEngine::BackupClient::Engine.new(api_communicator: @communicator,
+                                                     checksum_engine: @checksum_engine,
+                                                     encryption_engine: @encryption_engine,
+                                                     host: 'testhost',
+                                                     chunk_size: (512 * 1024), # Test with a small block size
+                                                     logger: @logger)
   end
 
   target_paths.each do |path|
@@ -38,5 +37,3 @@ describe 'Backup Engine: Functional' do
 
   pending "restores files"
 end
-    
-  

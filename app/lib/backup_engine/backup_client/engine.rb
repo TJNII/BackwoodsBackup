@@ -6,7 +6,7 @@ require_relative '../storage/encoder/metadata.rb'
 require_relative 'block.rb'
 
 module BackupEngine
-  module Client
+  module BackupClient
     class UnsupportedFileType < StandardError
     end
 
@@ -37,7 +37,7 @@ module BackupEngine
         when :directory
           _backup_directory(path: path, stat: stat)
         else
-          raise(BackupEngine::Client::UnsupportedFileType, "#{path}: Unsupported file type #{stat.file_type}")
+          raise(BackupEngine::BackupClient::UnsupportedFileType, "#{path}: Unsupported file type #{stat.file_type}")
         end
 
         if stat.file_type == :directory

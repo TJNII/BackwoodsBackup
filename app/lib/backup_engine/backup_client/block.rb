@@ -1,7 +1,7 @@
 require_relative '../storage/encoder/block.rb'
 
 module BackupEngine
-  module Client
+  module BackupClient
     class Block
       attr_reader :length
 
