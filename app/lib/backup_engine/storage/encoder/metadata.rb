@@ -39,13 +39,12 @@ module BackupEngine
                  })
         end
         
-        def create_symlink_backup_entry(path:, stat:, target:)
+        def create_symlink_backup_entry(path:, target:)
           upload(path: path,
                  payload: {
                    version: VERSION,
                    stamp: @stamp,
                    type: :symlink,
-                   stat: stat,
                    target: target
                  })
         end
@@ -57,9 +56,10 @@ module BackupEngine
         end
 
         def upload(path:, payload:)
-          metadata_path = path(path)
+          force_encoded_path = path.to_s.force_encoding('UTF-8')
+          metadata_path = path(force_encoded_path)
           @communicator.upload(path: metadata_path, payload: JSON.dump(payload))
-          @manifest.add_path(host_path: path, metadata_path: metadata_path)
+          @manifest.add_path(host_path: force_encoded_path, metadata_path: metadata_path)
         end
       end
     end

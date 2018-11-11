@@ -23,6 +23,12 @@ module BackupEngine
       end
 
       def backup_path(path:)
+        # File.stat follows symlinks.
+        if File.symlink? path
+          _backup_symlink(path: path)
+          return
+        end
+
         stat = BackupEngine::Stat.file_stat(path)
         
         case stat.file_type
@@ -30,10 +36,8 @@ module BackupEngine
           _backup_file(path: path, stat: stat)
         when :directory
           _backup_directory(path: path, stat: stat)
-        when :symbolic_link
-          _backup_symlink(path: path, stat: stat)
         else
-          raise(UnsupportedFileType("#{path}: Unsupported file type #{stat.file_type}"))
+          raise(BackupEngine::Client::UnsupportedFileType, "#{path}: Unsupported file type #{stat.file_type}")
         end
 
         if stat.file_type == :directory
@@ -101,9 +105,9 @@ module BackupEngine
         @logger.info("#{path}: backed up")
       end
 
-      def _backup_symlink(path:, stat:)
-        target = File.readlink(@path)
-        @metadata_encoder.create_symlink_backup_entry(path: path, stat: stat, target: target)
+      def _backup_symlink(path:)
+        target = File.readlink(path).force_encoding('UTF-8')
+        @metadata_encoder.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
       end
     end
