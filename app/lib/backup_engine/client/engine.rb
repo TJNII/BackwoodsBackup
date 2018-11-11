@@ -11,6 +11,8 @@ module BackupEngine
     end
 
     class Engine
+      attr_reader :checksum_engine, :api_communicator, :metadata_encoder, :encryption_engine, :chunk_size
+
       def initialize(api_communicator:, checksum_engine:, encryption_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
         @api_communicator = api_communicator
@@ -42,6 +44,10 @@ module BackupEngine
       rescue => exc
         @logger.error("Exception backing up #{path}: #{exc}")
         raise exc
+      end
+
+      def upload_manifest
+        @metadata_encoder.manifest.upload
       end
 
       private

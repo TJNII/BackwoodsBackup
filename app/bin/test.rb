@@ -17,3 +17,4 @@ engine = BackupEngine::Client::Engine.new(api_communicator: communicator,
                                           chunk_size: (1024 * 1024 * 25),
                                           logger: logger)
 engine.backup_path(path: Pathname.new(File.expand_path('../test/src')))
+engine.upload_manifest

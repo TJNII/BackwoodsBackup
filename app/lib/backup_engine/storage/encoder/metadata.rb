@@ -1,15 +1,20 @@
 require 'pathname'
 
+require_relative 'manifest.rb'
+
 module BackupEngine
   module Storage
     module Encoder
       class Metadata
         VERSION = 0
       
+        attr_reader :manifest
+
         def initialize(backup_host:, communicator:)
           @backup_host = backup_host
           @communicator = communicator
           @stamp = Time.now.to_i
+          @manifest = Manifest.new(backup_host: @backup_host, stamp: @stamp, communicator: @communicator)
         end
       
         def create_file_backup_entry(path:, checksum:, stat:, block_map:)
@@ -52,7 +57,9 @@ module BackupEngine
         end
 
         def upload(path:, payload:)
-          @communicator.upload(path: path(path), payload: JSON.dump(payload))
+          metadata_path = path(path)
+          @communicator.upload(path: metadata_path, payload: JSON.dump(payload))
+          @manifest.add_path(host_path: path, metadata_path: metadata_path)
         end
       end
     end
