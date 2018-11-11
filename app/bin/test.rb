@@ -1,17 +1,16 @@
 require 'logger'
 
-require_relative '../lib/backup_client/upload_api.rb'
-require_relative '../lib/backup_client/checksums.rb'
-require_relative '../lib/backup_client/encryption.rb'
-require_relative '../lib/backup_client/backup_client.rb'
+require_relative '../lib/backup_engine/communicator/filesystem.rb'
+require_relative '../lib/backup_engine/checksums/engine.rb'
+require_relative '../lib/backup_engine/encryption/engine.rb'
+require_relative '../lib/backup_engine/client/engine.rb'
 
-
-communicator = BackupClient::UploadAPI::FilesystemCommunicator.new(base_path: '../test/dst')
-checksum_engine = BackupClient::Checksums::Engine.new("sha256")
-encryption_engine = BackupClient::Encryption::Engine.new("none")
+communicator = BackupEngine::Communicator::Filesystem.new(base_path: '../test/dst')
+checksum_engine = BackupEngine::Checksums::Engine.new("sha256")
+encryption_engine = BackupEngine::Encryption::Engine.new("none")
 logger = Logger.new(STDOUT)
 
-engine = BackupClient::Backup::Engine.new(api_communicator: communicator,
+engine = BackupEngine::Client::Engine.new(api_communicator: communicator,
                                           checksum_engine: checksum_engine,
                                           encryption_engine: encryption_engine,
                                           host: 'testhost',

@@ -1,68 +1,27 @@
 require 'tempfile'
 require 'fileutils'
 
-require_relative 'checksums.rb'
-require_relative 'stat.rb'
-require_relative 'encoder.rb'
+require_relative '../stat.rb'
+require_relative '../storage/encoder/metadata.rb'
+require_relative 'block.rb'
 
-module BackupClient
-  module Backup
+module BackupEngine
+  module Client
     class UnsupportedFileType < StandardError
-    end
-
-    class Block
-      attr_reader :length
-
-      def initialize(data:, api_communicator:, checksum_engine:, encryption_engine:)
-        @checksum_engine = checksum_engine
-        @encryption_engine = encryption_engine
-
-        @data = data.freeze
-        @length = data.length
-        @checksum = @checksum_engine.block(@data)
-
-        @block_encoder = BackupClient::Encoder::Block.new(communicator: api_communicator,
-                                                          unencrypted_checksum: @checksum,
-                                                          unencrypted_length: @length
-                                                          )
-      end
-
-      def to_hash
-        {
-          unencrypted_checksum: @checksum,
-          unencrypted_length: @length
-        }
-      end
-      
-      def backed_up?
-        @block_encoder.exists?
-      end
-
-      def metadata_path
-        @block_encoder.metadata_path
-      end
-
-      def back_up
-        encrypted_data = @encryption_engine.encrypt(@data)
-        encrypted_checksum = @checksum_engine.block(encrypted_data.payload)
-
-        @block_encoder.back_up_block(encrypted_data: encrypted_data,
-                                     encrypted_checksum: encrypted_checksum)
-      end
     end
 
     class Engine
       def initialize(api_communicator:, checksum_engine:, encryption_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
         @api_communicator = api_communicator
-        @metadata_encoder = BackupClient::Encoder::Metadata.new(communicator: api_communicator, backup_host: host)
+        @metadata_encoder = BackupEngine::Storage::Encoder::Metadata.new(communicator: api_communicator, backup_host: host)
         @encryption_engine = encryption_engine
         @chunk_size = chunk_size
         @logger = logger
       end
 
       def backup_path(path:)
-        stat = BackupClient::Stat.file_stat(path)
+        stat = BackupEngine::Stat.file_stat(path)
         
         case stat.file_type
         when :file

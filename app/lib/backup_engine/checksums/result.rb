@@ -1,7 +1,6 @@
-require 'digest'
 require 'json'
 
-module BackupClient
+module BackupEngine
   module Checksums
     class Result
       attr_reader :checksum, :algorithm
@@ -30,25 +29,6 @@ module BackupClient
         return false if other.algorithm != @algorithm
         return false if other.checksum != @checksum
         return true
-      end
-    end
-
-    class Engine
-      def initialize(algorithm)
-        @algorithm = algorithm.freeze
-        if algorithm == "sha256"
-          @engine = Digest::SHA256
-        else
-          raise "Unsupported checksum algorithm #{algorithm}"
-        end
-      end
-
-      def file(path)
-        Result.new(@engine.file(path).hexdigest, @algorithm)
-      end      
-
-      def block(data)
-        Result.new(@engine.hexdigest(data), @algorithm)
       end
     end
   end
