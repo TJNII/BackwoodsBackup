@@ -106,7 +106,7 @@ module BackupEngine
       end
 
       def _backup_symlink(path:)
-        target = File.readlink(path).force_encoding('UTF-8')
+        target = File.readlink(path)
         @metadata_encoder.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
       end

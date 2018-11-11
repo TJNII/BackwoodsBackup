@@ -56,10 +56,9 @@ module BackupEngine
         end
 
         def upload(path:, payload:)
-          force_encoded_path = path.to_s.force_encoding('UTF-8')
-          metadata_path = path(force_encoded_path)
+          metadata_path = path(path)
           @communicator.upload(path: metadata_path, payload: JSON.dump(payload))
-          @manifest.add_path(host_path: force_encoded_path, metadata_path: metadata_path)
+          @manifest.add_path(host_path: path, metadata_path: metadata_path)
         end
       end
     end
