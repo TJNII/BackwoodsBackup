@@ -11,7 +11,7 @@ module BackupEngine
     end
 
     class Engine
-      attr_reader :checksum_engine, :communicator, :metadata_encoder, :encryption_engine, :compression_engine, :chunk_size
+      attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
       def initialize(communicator:, checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
@@ -46,9 +46,10 @@ module BackupEngine
             backup_path(path: sub_path)
           end
         end
-#      rescue => exc
-#        @logger.error("Exception backing up #{path}: #{exc}")
-#        raise exc
+      rescue => exc
+        # TODO: This fails the whole parent path
+        @logger.error("Exception backing up #{path}: #{exc}")
+        raise exc
       end
 
       def upload_manifest

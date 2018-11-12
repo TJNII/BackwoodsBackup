@@ -15,3 +15,5 @@ RUN bundle install
 
 COPY app /app
 
+# For the tests
+RUN mkdir /tmp/test_backup_output

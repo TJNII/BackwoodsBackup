@@ -14,13 +14,6 @@ module BackupEngine
         @checksum = @checksum_engine.block(@data)
       end
 
-#      def to_hash
-#        {
-#          unencrypted_checksum: @checksum,
-#          unencrypted_length: @length
-#        }
-#      end
-
       def path
         Pathname.new("blocks/#{@checksum}/#{@length}/record.bin")
       end
