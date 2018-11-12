@@ -2,7 +2,7 @@ require 'pathname'
 require 'fileutils'
 
 module BackupEngine
-  module Communicator
+  module CommunicatorBackend
     class Filesystem
       def initialize(base_path:)
         @base_path = Pathname.new(base_path).freeze

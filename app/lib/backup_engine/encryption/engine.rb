@@ -16,6 +16,11 @@ module BackupEngine
         # TODO: Actually do the thing
         Result.new(data, @engine)
       end
+
+      def decrypt(data)
+        # TODO: Actually do the thing
+        data
+      end
     end
   end
 end

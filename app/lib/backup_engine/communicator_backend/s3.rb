@@ -2,7 +2,7 @@ require 'pathname'
 require 'fileutils'
 
 module BackupEngine
-  module Communicator
+  module CommunicatorBackend
     class S3
       def initialize(bucket:)
         raise("STUBBED")

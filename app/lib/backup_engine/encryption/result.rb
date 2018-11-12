@@ -9,6 +9,11 @@ module BackupEngine
         @length = payload.length
       end
 
+      def metadata
+        { algorithm: @algorithm,
+          length: @length }.freeze
+      end
+        
       def ==(other)
         return false if other.length != @length
         return false if other.algorithm != @algorithm

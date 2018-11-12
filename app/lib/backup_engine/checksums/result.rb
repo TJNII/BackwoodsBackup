@@ -26,9 +26,17 @@ module BackupEngine
       end
 
       def ==(other)
-        return false if other.algorithm != @algorithm
-        return false if other.checksum != @checksum
-        return true
+        if other.is_a? BackupEngine::Checksums::Result
+          return false if other.algorithm != @algorithm
+          return false if other.checksum != @checksum
+          return true
+        elsif other.is_a? Hash
+          return false if other.fetch('algorithm')  != @algorithm
+          return false if other.fetch('checksum') != @checksum
+          return true
+        else
+          raise("Can't compare BackupEngine::Checksums::Result to #{other.class}")
+        end
       end
     end
   end

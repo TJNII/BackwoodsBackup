@@ -11,7 +11,7 @@ module BackupEngine
 
       def metadata
         { algorithm: @algorithm,
-          compressed_length: @length }.freeze
+          length: @length }.freeze
       end
 
       def ==(other)

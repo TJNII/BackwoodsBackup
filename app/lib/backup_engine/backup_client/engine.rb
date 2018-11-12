@@ -2,7 +2,7 @@ require 'tempfile'
 require 'fileutils'
 
 require_relative '../stat.rb'
-require_relative '../storage/encoder/metadata.rb'
+require_relative 'manifest.rb'
 require_relative 'block.rb'
 
 module BackupEngine
@@ -11,12 +11,12 @@ module BackupEngine
     end
 
     class Engine
-      attr_reader :checksum_engine, :api_communicator, :metadata_encoder, :encryption_engine, :compression_engine, :chunk_size
+      attr_reader :checksum_engine, :communicator, :metadata_encoder, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(api_communicator:, checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
+      def initialize(communicator:, checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
-        @api_communicator = api_communicator
-        @metadata_encoder = BackupEngine::Storage::Encoder::Metadata.new(communicator: api_communicator, backup_host: host)
+        @communicator = communicator
+        @manifest = Manifest.new(backup_host: host)
         @encryption_engine = encryption_engine
         @compression_engine = compression_engine
         @chunk_size = chunk_size
@@ -46,13 +46,16 @@ module BackupEngine
             backup_path(path: sub_path)
           end
         end
-      rescue => exc
-        @logger.error("Exception backing up #{path}: #{exc}")
-        raise exc
+#      rescue => exc
+#        @logger.error("Exception backing up #{path}: #{exc}")
+#        raise exc
       end
 
       def upload_manifest
-        @metadata_encoder.manifest.upload
+        @manifest.upload(communicator: @communicator,
+                         checksum_engine: @checksum_engine, 
+                         encryption_engine: @encryption_engine,
+                         compression_engine: @compression_engine)
       end
 
       private
@@ -75,7 +78,7 @@ module BackupEngine
           until tmpfile.eof?
             offset = tmpfile.tell
             block = Block.new(data: tmpfile.read(@chunk_size),
-                              api_communicator: @api_communicator,
+                              communicator: @communicator,
                               checksum_engine: @checksum_engine,
                               encryption_engine: @encryption_engine,
                               compression_engine: @compression_engine)
@@ -87,29 +90,29 @@ module BackupEngine
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes using existing block")
             else 
               block.back_up
-              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{block.compression_percent}%")
+              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.")
             end
 
-            block_map.push(offset: offset, metadata_path: block.metadata_path)
+            block_map.push(offset: offset, path: block.path)
           end
           
-          @metadata_encoder.create_file_backup_entry(path: path,
-                                                     checksum: checksum,
-                                                     stat: stat,
-                                                     block_map: block_map)
+          @manifest.create_file_backup_entry(path: path,
+                                             checksum: checksum,
+                                             stat: stat,
+                                             block_map: block_map)
         end
 
         @logger.info("#{path}: backed up")
       end
     
       def _backup_directory(path:, stat:)
-        @metadata_encoder.create_directory_backup_entry(path: path, stat: stat)
+        @manifest.create_directory_backup_entry(path: path, stat: stat)
         @logger.info("#{path}: backed up")
       end
 
       def _backup_symlink(path:)
         target = File.readlink(path)
-        @metadata_encoder.create_symlink_backup_entry(path: path, target: target)
+        @manifest.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
       end
     end
