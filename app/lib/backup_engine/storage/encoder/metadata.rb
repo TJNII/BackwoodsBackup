@@ -18,7 +18,7 @@ module BackupEngine
         end
       
         def create_file_backup_entry(path:, checksum:, stat:, block_map:)
-          upload(path: path,
+          store(path: path,
                  payload: {
                    version: VERSION,
                    stamp: @stamp,
@@ -30,7 +30,7 @@ module BackupEngine
         end
 
         def create_directory_backup_entry(path:, stat:)
-          upload(path: path,
+          store(path: path,
                  payload: {
                    version: VERSION,
                    stamp: @stamp,
@@ -40,7 +40,7 @@ module BackupEngine
         end
         
         def create_symlink_backup_entry(path:, target:)
-          upload(path: path,
+          store(path: path,
                  payload: {
                    version: VERSION,
                    stamp: @stamp,
@@ -55,10 +55,9 @@ module BackupEngine
           "metadata/#{@backup_host}/#{path}/metadata.#{@stamp}.json"
         end
 
-        def upload(path:, payload:)
+        def store(path:, payload:)
           metadata_path = path(path)
-          @communicator.upload(path: metadata_path, payload: JSON.dump(payload))
-          @manifest.add_path(host_path: path, metadata_path: metadata_path)
+          @manifest.add_path(host_path: path, metadata: payload)
         end
       end
     end

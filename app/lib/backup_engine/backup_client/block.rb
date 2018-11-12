@@ -37,7 +37,7 @@ module BackupEngine
 
       def back_up
         compressed_data = @compression_engine.compress(@data)
-        @compression_percent = (compressed_data.length.to_f / @length * 100)
+        @compression_percent = 100 - (compressed_data.length.to_f / @length * 100)
         encrypted_data = @encryption_engine.encrypt(compressed_data.payload)
         encrypted_checksum = @checksum_engine.block(encrypted_data.payload)
 

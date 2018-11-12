@@ -11,8 +11,8 @@ module BackupEngine
           @manifest = {}
         end
         
-        def add_path(host_path:, metadata_path:)
-          @manifest[host_path] = metadata_path
+        def add_path(host_path:, metadata:)
+          @manifest[host_path] = metadata
         end
 
         def path
