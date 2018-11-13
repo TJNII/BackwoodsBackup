@@ -38,8 +38,9 @@ module BackupEngine
       private
 
       def _set_attributes(path:, metadata:)
-        FileUtils.chmod(metadata["stat"]["mode"], path)
+        # Order important: chown after chmod will reset sticky bits
         FileUtils.chown(metadata["stat"]["uid"], metadata["stat"]["gid"], path)
+        FileUtils.chmod(metadata["stat"]["mode"], path)
       end
 
       def _restore_file(path:, metadata:)
@@ -60,12 +61,12 @@ module BackupEngine
           checksum = BackupEngine::Checksums::Engine.new(metadata["checksum"]["algorithm"]).file(tmpfile.path)
           raise("Restore Error: #{path}: Checksum mismatch: #{checksum}:#{metadata["checksum"]}") if checksum != metadata["checksum"]
       
-          _set_attributes(path: tmpfile.path, metadata: metadata)
           FileUtils.mv(tmpfile.path, path)
-          @logger.info("#{path}: Restored")
         end
+        _set_attributes(path: path, metadata: metadata)
+        @logger.info("#{path}: Restored")
       end                          
-    
+
       def _restore_directory(path:, metadata:)
         FileUtils.mkdir(path)
         _set_attributes(path: path, metadata: metadata)
