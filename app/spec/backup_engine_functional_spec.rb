@@ -55,7 +55,7 @@ describe 'Backup Engine: Functional' do
       it "restores proper types and permissions on #{file}" do
         output = [restore_path, '/'].map do |tgt_path|
           # Ignore times, link count, sizes (Mismatch on directories)
-          `cd #{tgt_path}; ls -nd --time-style=+ #{file}`.split.select.with_index { |_, i| [0, 2, 3].include? i }
+          `cd #{tgt_path}; ls -nd --time-style=+ "#{file}"`.split.select.with_index { |_, i| [0, 2, 3].include? i }
         end
         expect(output[0]).to eql(output[1])
       end
@@ -65,7 +65,7 @@ describe 'Backup Engine: Functional' do
     files.each do |file|
       it "restores proper file contents on #{file}" do
         output = [restore_path, '/'].map do |tgt_path|
-          `cd #{tgt_path}; cat #{file} | wc -c; sha512sum #{file}`
+          `cd #{tgt_path}; cat "#{file}" | wc -c; sha512sum "#{file}"`
         end
         expect(output[0]).to eql(output[1])
       end
