@@ -15,9 +15,9 @@ module BackupEngine
       end
     
       def path
-        "manifests/#{@backup_host}/#{@stamp}/manifest.bin"
+        Pathname.new("manifests").join(@backup_host.to_s).join(@stamp.to_s)
       end
-      
+
       def upload(checksum_engine:, encryption_engine:, compression_engine:)
         payload = JSON.dump(version: VERSION,
                             stamp: @stamp,
@@ -62,7 +62,6 @@ module BackupEngine
     # TODO: Very similar to block_encoder restore
     def self.download(path:, encryption_engine:)
       decrypted_data = encryption_engine.decrypt(path: path)
-      puts decrypted_data[:metadata]
       raise(DecodeError, "Metadata version mismatch: #{decrypted_data[:metadata][:version]}:#{METADATA_VERSION}") if decrypted_data[:metadata][:version] != Manifest::VERSION
       data = BackupEngine::Compression::Engine.decompress(metadata: decrypted_data[:metadata][:compression], payload: decrypted_data[:payload])
       BackupEngine::Checksums::Engine.parse(decrypted_data[:metadata][:checksum]).verify_block(data)

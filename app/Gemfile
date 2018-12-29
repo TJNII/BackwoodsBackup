@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 
 gem 'bindata'
+gem 'openssl'
 gem 'powerpack'
 gem 'rspec'
 gem 'simplecov'

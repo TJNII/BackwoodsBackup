@@ -49,7 +49,7 @@ module BackupEngine
           offset = tmpfile.tell
           metadata["block_map"].each do |block_metadata|
             raise("Restore Error: #{path}: offset mismatch: #{offset}:#{block_metadata["offset"]}") if offset != block_metadata["offset"]
-            tmpfile.write(BackupEngine::BlockEncoder.restore(path: block_metadata["path"], encryption_engine: @encryption_engine).data)
+            tmpfile.write(BackupEngine::BlockEncoder.restore(path: Pathname.new(block_metadata["path"]), encryption_engine: @encryption_engine).data)
             offset = tmpfile.tell
             @logger.debug("#{path}: Restored #{offset}/#{metadata["stat"]["size"]} bytes")
           end

@@ -12,11 +12,19 @@ require 'logger'
 # This is intended to be run in a Docker container.
 describe 'Backup Engine: Functional' do
   target_paths = Pathname.new('/').children.reject { |path| %w[/proc /sys /dev /tmp].include? path.to_s }.freeze
+#  target_paths = [Pathname.new('/etc/hostname')]
 
   before :all do
     @communicator = BackupEngine::Communicator.new(type: "filesystem", backend_config: {base_path: '/tmp/test_backup_output'})
+
+#    @encryption_engine = BackupEngine::Encryption::Engines::None.new(communicator: @communicator)
+    @encryption_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator,
+                                                                          settings: {
+                                                                            algorithm: 'AES-256-CBC',
+                                                                            key: OpenSSL::Cipher.new('AES-256-CBC').random_key
+                                                                          })
+
     @checksum_engine = BackupEngine::Checksums::Engines::SHA256.new
-    @encryption_engine = BackupEngine::Encryption::Engines::None.new(communicator: @communicator)
     @compression_engine = BackupEngine::Compression::Engines::Zlib.new
     @logger = Logger.new(STDOUT)
 

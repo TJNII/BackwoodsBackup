@@ -18,7 +18,7 @@ module BackupEngine
       end
 
       def path
-        Pathname.new("blocks/#{@checksum}/#{@length}/block")
+        Pathname.new("blocks/#{@checksum}/#{@length}")
       end
 
       def backed_up?
