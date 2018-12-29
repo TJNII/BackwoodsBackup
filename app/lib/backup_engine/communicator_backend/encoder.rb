@@ -1,13 +1,12 @@
 require 'bindata'
 
-require_relative '../encryption/engine.rb'
-require_relative '../compression/engine.rb'
 require_relative '../checksums/engine.rb'
 
 module BackupEngine
   module CommunicatorBackend
     module Encoder
-      VERSION = 0
+      VERSION = 1
+      METADATA_CHECKSUM_ALGORITHM = "sha256".freeze
 
       class DecodeError < StandardError
       end
@@ -15,50 +14,40 @@ module BackupEngine
       class Record < BinData::Record
         endian :big
         int8   :version
+
+        int16  :metadata_checksum_length, :value => lambda { metadata_checksum.length }
+        string :metadata_checksum, :read_length => :metadata_checksum_length          
+
         int16  :metadata_length, :value => lambda { metadata.length }
         string :metadata, :read_length => :metadata_length          
+
+        int16  :payload_encoding_length, :value => lambda { payload_encoding.length }
+        string :payload_encoding, :read_length => :payload_encoding_length
+
         int32  :payload_length, :value => lambda { payload.length } 
         string :payload, :read_length => :payload_length
       end
 
-      def self.encode(payload:, checksum:, checksum_engine:, encryption_engine:, compression_engine:)
-        compressed_data = compression_engine.compress(payload)
-        encrypted_data = encryption_engine.encrypt(compressed_data.payload)
-        encrypted_checksum = checksum_engine.block(encrypted_data.payload)
-
-        # compression_percent = 100 - (compressed_data.length.to_f / @length * 100)
-
+      def self.encode(metadata:, payload:)
+        raw_metadata = JSON.dump(metadata)
         Record.new(version: VERSION,
-                   metadata: JSON.dump(unencrypted_checksum: checksum,
-                                       unencrypted_length: payload.length,
-                                       compression_metadata: compressed_data.metadata,
-                                       encryption_metadata: encrypted_data.metadata,
-                                       encrypted_checksum: encrypted_checksum,
-                                       payload_encoding: payload.encoding.to_s),
-                   payload: encrypted_data.payload).to_binary_s
+                   metadata_checksum: BackupEngine::Checksums::Engines::SHA256.new.block(raw_metadata),
+                   metadata: raw_metadata,
+                   payload_encoding: payload.encoding.to_s,
+                   payload: payload).to_binary_s
       end
 
       def self.decode(payload)
         record = Record.read(payload)
-        
         raise(DecodeError, "Record Version Mismatch: #{record.version}:#{VERSION}") if record.version != VERSION
-        metadata = JSON.load(record.metadata)
-
-        raise(DecodeError, "Encrypted payload length mismatch: #{record.payload.length}:#{metadata["encrypted_metadata"]["length"]}") if record.payload.length != metadata["encryption_metadata"]["length"]
-        encrypted_checksum = BackupEngine::Checksums::Engine.new(metadata["encrypted_checksum"]["algorithm"]).block(record.payload)
-        raise(DecodeError, "Encrypted checksum mismatch: #{encrypted_checksum}:#{metadata["encrypted_checksum"]}") if encrypted_checksum != metadata["encrypted_checksum"]
-
-        decryptor = BackupEngine::Encryption::Engine.new(metadata["encryption_metadata"]["algorithm"])
-        compressed_data = decryptor.decrypt(record.payload)
         
-        raise(DecodeError, "Compressed payload length mismatch: #{compressed_data.length}:#{metadata["compression_metadata"]["length"]}") if compressed_data.length != metadata["compression_metadata"]["length"]
-        decompressor = BackupEngine::Compression::Engine.new(metadata["compression_metadata"]["algorithm"])
-        data = decompressor.decompress(compressed_data).force_encoding(metadata["payload_encoding"]) # https://github.com/dmendel/bindata/wiki/FAQ#how-do-i-use-string-encodings-with-bindata
-
-        raise(DecodeError, "Payload length mismatch: #{data.length}:#{metadata["unencrypted_length"]}") if data.length != metadata["unencrypted_length"]
-        unencrypted_checksum = BackupEngine::Checksums::Engine.new(metadata["unencrypted_checksum"]["algorithm"]).block(data)
-        raise(DecodeError, "Unencrypted checksum mismatch: #{unencrypted_checksum}:#{metadata["unencrypted_checksum"]}") if unencrypted_checksum != metadata["unencrypted_checksum"]
-        return data
+        BackupEngine::Checksums::Engine.parse(record.metadata_checksum.to_s).verify_block(record.metadata)
+        metadata = JSON.parse(record.metadata, :symbolize_names => true)
+        payload = record.payload.force_encoding(record.payload_encoding) # https://github.com/dmendel/bindata/wiki/FAQ#how-do-i-use-string-encodings-with-bindata
+        
+        return {metadata: metadata, payload: payload}
+      rescue BackupEngine::Checksums::ChecksumMismatch => e
+        raise(DecodeError, "Record metadata checksum mismatch: #{e}")
       end
     end
   end

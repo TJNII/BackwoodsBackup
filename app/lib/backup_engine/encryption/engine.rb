@@ -1,26 +1,5 @@
-require_relative 'result.rb'
+require_relative 'engines/none.rb'
 
-module BackupEngine
-  module Encryption
-    class Engine
-      def initialize(algorithm)
-        @algorithm = algorithm.freeze
-        if algorithm == "none"
-          @engine = :none
-        else
-          raise "Unsupported encryption algorithm #{algorithm}"
-        end
-      end
-
-      def encrypt(data)
-        # TODO: Actually do the thing
-        Result.new(data, @engine)
-      end
-
-      def decrypt(data)
-        # TODO: Actually do the thing
-        data
-      end
-    end
-  end
-end
+#module BackupEngine
+#  module Encryption
+#    module Engine

@@ -15,13 +15,12 @@ describe 'Backup Engine: Functional' do
 
   before :all do
     @communicator = BackupEngine::Communicator.new(type: "filesystem", backend_config: {base_path: '/tmp/test_backup_output'})
-    @checksum_engine = BackupEngine::Checksums::Engine.new("sha256")
-    @encryption_engine = BackupEngine::Encryption::Engine.new("none")
-    @compression_engine = BackupEngine::Compression::Engine.new("zlib")
+    @checksum_engine = BackupEngine::Checksums::Engines::SHA256.new
+    @encryption_engine = BackupEngine::Encryption::Engines::None.new(communicator: @communicator)
+    @compression_engine = BackupEngine::Compression::Engines::Zlib.new
     @logger = Logger.new(STDOUT)
 
-    @backup_engine = BackupEngine::BackupClient::Engine.new(communicator: @communicator,
-                                                            checksum_engine: @checksum_engine,
+    @backup_engine = BackupEngine::BackupClient::Engine.new(checksum_engine: @checksum_engine,
                                                             encryption_engine: @encryption_engine,
                                                             compression_engine: @compression_engine,
                                                             host: 'testhost',
@@ -40,7 +39,7 @@ describe 'Backup Engine: Functional' do
   end
 
   it 'restores without errors' do
-    restore_engine = BackupEngine::RestoreClient::Engine.new(communicator: @communicator, logger: @logger)
+    restore_engine = BackupEngine::RestoreClient::Engine.new(encryption_engine: @encryption_engine, logger: @logger)
     restore_engine.restore_manifest(manifest_path: @backup_engine.manifest.path,
                                     restore_path: Pathname.new('/tmp/test_restore'))
   end

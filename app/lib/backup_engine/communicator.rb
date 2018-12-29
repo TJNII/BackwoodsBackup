@@ -15,13 +15,9 @@ module BackupEngine
                  end
     end
 
-    def upload(path:, payload:, checksum:, checksum_engine:, encryption_engine:, compression_engine:)
+    def upload(path:, metadata:, payload:)
       @backend.upload(path: path,
-                      payload: CommunicatorBackend::Encoder.encode(payload: payload, 
-                                                                   checksum: checksum, 
-                                                                   checksum_engine: checksum_engine, 
-                                                                   encryption_engine: encryption_engine, 
-                                                                   compression_engine: compression_engine))
+                      payload: CommunicatorBackend::Encoder.encode(metadata: metadata, payload: payload))
     end
 
     def exists?(path:)

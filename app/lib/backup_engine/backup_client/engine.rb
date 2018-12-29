@@ -2,8 +2,8 @@ require 'tempfile'
 require 'fileutils'
 
 require_relative '../stat.rb'
-require_relative 'manifest.rb'
-require_relative 'block.rb'
+require_relative '../manifest.rb'
+require_relative '../block_encoder.rb'
 
 module BackupEngine
   module BackupClient
@@ -13,10 +13,9 @@ module BackupEngine
     class Engine
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(communicator:, checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
         @checksum_engine = checksum_engine
-        @communicator = communicator
-        @manifest = Manifest.new(backup_host: host)
+        @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host)
         @encryption_engine = encryption_engine
         @compression_engine = compression_engine
         @chunk_size = chunk_size
@@ -53,8 +52,7 @@ module BackupEngine
       end
 
       def upload_manifest
-        @manifest.upload(communicator: @communicator,
-                         checksum_engine: @checksum_engine, 
+        @manifest.upload(checksum_engine: @checksum_engine, 
                          encryption_engine: @encryption_engine,
                          compression_engine: @compression_engine)
       end
@@ -78,11 +76,9 @@ module BackupEngine
           block_map = []
           until tmpfile.eof?
             offset = tmpfile.tell
-            block = Block.new(data: tmpfile.read(@chunk_size),
-                              communicator: @communicator,
-                              checksum_engine: @checksum_engine,
-                              encryption_engine: @encryption_engine,
-                              compression_engine: @compression_engine)
+            block = BackupEngine::BlockEncoder::Block.new(data: tmpfile.read(@chunk_size),
+                                                          checksum_engine: @checksum_engine,
+                                                          encryption_engine: @encryption_engine)
             if block.length != @chunk_size && !tmpfile.eof?
               raise("INTERNAL ERROR: Short Read: #{block.length}/#{@chunk_size}")
             end
@@ -90,8 +86,8 @@ module BackupEngine
             if block.backed_up?
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes using existing block")
             else 
-              block.back_up
-              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.")
+              result = block.back_up(compression_engine: @compression_engine)
+              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{result[:compression_percent]}%")
             end
 
             block_map.push(offset: offset, path: block.path)

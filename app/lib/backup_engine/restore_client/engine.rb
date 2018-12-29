@@ -6,15 +6,14 @@ require_relative '../checksums/engine.rb'
 module BackupEngine
   module RestoreClient
     class Engine
-      def initialize(communicator:, logger:)
-        @communicator = communicator
+      def initialize(encryption_engine:, logger:)
+        @encryption_engine = encryption_engine
         @logger = logger
       end
 
       def restore_manifest(manifest_path:, restore_path:)
-        manifest = JSON.load(@communicator.download(path: manifest_path))
-        raise("Unknown manifest version #{manifest["version"]}") if manifest["version"] != 0
-
+        manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
+        
         manifest["manifest"].each_pair do |path, metadata|
           path_obj = Pathname.new(path)
           path_obj = path_obj.relative_path_from(Pathname.new('/')) if path_obj.absolute?
@@ -50,7 +49,7 @@ module BackupEngine
           offset = tmpfile.tell
           metadata["block_map"].each do |block_metadata|
             raise("Restore Error: #{path}: offset mismatch: #{offset}:#{block_metadata["offset"]}") if offset != block_metadata["offset"]
-            tmpfile.write(@communicator.download(path: block_metadata["path"]))
+            tmpfile.write(BackupEngine::BlockEncoder.restore(path: block_metadata["path"], encryption_engine: @encryption_engine).data)
             offset = tmpfile.tell
             @logger.debug("#{path}: Restored #{offset}/#{metadata["stat"]["size"]} bytes")
           end
@@ -58,10 +57,11 @@ module BackupEngine
           tmpfile.close
           
           raise("Restore Error: #{path}: Size mismatch: #{File.size(tmpfile.path)}:#{metadata["stat"]["size"]}") if File.size(tmpfile.path) != metadata["stat"]["size"]
-          checksum = BackupEngine::Checksums::Engine.new(metadata["checksum"]["algorithm"]).file(tmpfile.path)
-          raise("Restore Error: #{path}: Checksum mismatch: #{checksum}:#{metadata["checksum"]}") if checksum != metadata["checksum"]
+          BackupEngine::Checksums::Engine.parse(metadata["checksum"]).verify_file(tmpfile.path)
       
           FileUtils.mv(tmpfile.path, path)
+        rescue BackupEngine::Checksums::ChecksumMismatch => e
+          raise("Restore Error: #{path}: Checksum mismatch: #{e}")
         end
         _set_attributes(path: path, metadata: metadata)
         @logger.info("#{path}: Restored")
