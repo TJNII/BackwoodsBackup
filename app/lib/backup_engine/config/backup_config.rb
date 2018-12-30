@@ -23,7 +23,7 @@ module BackupEngine
         @compression_engine = BackupEngine::Compression::Engine.init_engine(algorithm: config.fetch(:compression_algorithm, 'zlib'))
         @path_exclusions = config.fetch(:path_exclusions, [])
 
-        @chunk_size = config.fetch(:chunk_size, 1048576)
+        @chunk_size = config.fetch(:chunk_size, (20 * 1024 * 1024))
         @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
       rescue KeyError => e
         raise(ParseError, "Error parsing top level configuration: #{e}")
