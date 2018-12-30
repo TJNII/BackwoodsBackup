@@ -1,8 +1,12 @@
 source 'https://rubygems.org'
 
-gem 'bindata'
-gem 'openssl'
-gem 'powerpack'
-gem 'rspec'
-gem 'simplecov'
-gem 'zlib'
+gem 'bindata', "~> 2.4"
+gem 'openssl', "~> 2.1"
+gem 'powerpack', "~> 0.1"
+gem 'zlib', "~> 1.0"
+
+group 'development' do
+  gem 'rspec', "~> 3.8"
+  gem 'rubocop', "~> 0.61"
+  gem 'simplecov', "~> 0.16"
+end

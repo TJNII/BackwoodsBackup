@@ -1,0 +1,10 @@
+AllCops:
+  TargetRubyVersion: 2.5
+
+# Increase line length, we're not on VT220s anymore
+Metrics/LineLength:
+  Max: 180
+
+# Favor explicit over implicit code: don't complain of "redundant returns"
+RedundantReturn:
+  Enabled: false
