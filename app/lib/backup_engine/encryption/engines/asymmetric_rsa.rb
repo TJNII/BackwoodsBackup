@@ -90,7 +90,7 @@ module BackupEngine
         end
 
         def symmetric_encrypt(base_path:, payload:, metadata:)
-          key = OpenSSL::Cipher::Cipher.new(DEFAULT_SYMMETRIC_ALGORITHM).random_key
+          key = OpenSSL::Cipher.new(DEFAULT_SYMMETRIC_ALGORITHM).random_key
           key_sha = BackupEngine::Checksums::Engines::SHA256.new.block(key)
           path = base_path.join('asym_blocks').join(key_sha.to_s)
 
