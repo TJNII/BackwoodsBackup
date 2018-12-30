@@ -2,7 +2,7 @@ module BackupEngine
   module Compression
     class Result
       attr_reader :payload, :algorithm, :compressed_length, :uncompressed_length
-      
+
       def initialize(payload:, algorithm:, encoding:, uncompressed_length:)
         @payload = payload.freeze
         @algorithm = algorithm.freeze
@@ -15,8 +15,7 @@ module BackupEngine
         { algorithm: @algorithm,
           encoding: @encoding,
           compressed_length: @compressed_length,
-          uncompressed_length: @uncompressed_length
-        }.freeze
+          uncompressed_length: @uncompressed_length }.freeze
       end
 
       def compression_percent
@@ -27,6 +26,7 @@ module BackupEngine
         return false if other.length != @length
         return false if other.algorithm != @algorithm
         return false if other.payload != @payload
+
         return true
       end
     end

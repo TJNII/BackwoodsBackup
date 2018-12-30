@@ -36,7 +36,7 @@ module BackupEngine
         end
 
         stat = BackupEngine::Stat.file_stat(path)
-        
+
         case stat.file_type
         when :file
           _backup_file(path: path, stat: stat)
@@ -51,33 +51,34 @@ module BackupEngine
             backup_path(path: sub_path)
           end
         end
-      rescue => exc
+      rescue StandardError => exc
         # TODO: This fails the whole parent path
         @logger.error("Exception backing up #{path}: #{exc}")
         raise exc
       end
 
       def upload_manifest
-        @manifest.upload(checksum_engine: @checksum_engine, 
+        @manifest.upload(checksum_engine: @checksum_engine,
                          encryption_engine: @encryption_engine,
                          compression_engine: @compression_engine)
       end
 
       private
-      
+
       def _backup_file(path:, stat:)
         checksum = @checksum_engine.file(path)
 
         # Copy the target to a tmpfile in case it changes while backing up
         Tempfile.create('backup_client') do |tmpfile| # TODO: configurable path
-          FileUtils.chmod(0600, tmpfile.path)
+          FileUtils.chmod(0o600, tmpfile.path)
           FileUtils.cp(path, tmpfile.path)
           if @checksum_engine.file(tmpfile.path) != checksum
             @logger.error("#{path} changed while being backed up")
-            return
+            # Blocks are not iterators
+            return # rubocop: disable Lint/NonLocalExitFromIterator
           end
 
-          raise("INTERNAL ERROR: tmpfile pointer not at 0") unless tmpfile.tell == 0
+          raise('INTERNAL ERROR: tmpfile pointer not at 0') unless tmpfile.tell == 0
 
           block_map = []
           until tmpfile.eof?
@@ -85,20 +86,19 @@ module BackupEngine
             block = BackupEngine::BlockEncoder::Block.new(data: tmpfile.read(@chunk_size),
                                                           checksum_engine: @checksum_engine,
                                                           encryption_engine: @encryption_engine)
-            if block.length != @chunk_size && !tmpfile.eof?
-              raise("INTERNAL ERROR: Short Read: #{block.length}/#{@chunk_size}")
-            end
+
+            raise("INTERNAL ERROR: Short Read: #{block.length}/#{@chunk_size}") if block.length != @chunk_size && !tmpfile.eof?
 
             if block.backed_up?
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes using existing block")
-            else 
+            else
               result = block.back_up(compression_engine: @compression_engine)
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{result[:compression_percent]}%")
             end
 
             block_map.push(offset: offset, path: block.path)
           end
-          
+
           @manifest.create_file_backup_entry(path: path,
                                              checksum: checksum,
                                              stat: stat,
@@ -107,7 +107,7 @@ module BackupEngine
 
         @logger.info("#{path}: backed up")
       end
-    
+
       def _backup_directory(path:, stat:)
         @manifest.create_directory_backup_entry(path: path, stat: stat)
         @logger.info("#{path}: backed up")
@@ -121,9 +121,7 @@ module BackupEngine
 
       def _path_excluded?(path)
         @path_exclusions.each do |exclusion|
-          if path.to_s =~ /#{exclusion}/
-            return true
-          end
+          return true if path.to_s =~ /#{exclusion}/
         end
         return false
       end

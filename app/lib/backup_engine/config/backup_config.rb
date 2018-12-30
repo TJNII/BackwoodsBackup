@@ -22,9 +22,9 @@ module BackupEngine
         @checksum_engine = BackupEngine::Checksums::Engine.init_engine(algorithm: config.fetch(:checksum_algorithm, 'sha256'))
         @compression_engine = BackupEngine::Compression::Engine.init_engine(algorithm: config.fetch(:compression_algorithm, 'zlib'))
         @path_exclusions = config.fetch(:path_exclusions, [])
-        
+
         @chunk_size = config.fetch(:chunk_size, 1048576)
-        @logger.warn("Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance") if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
+        @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
       rescue KeyError => e
         raise(ParseError, "Error parsing top level configuration: #{e}")
       end
@@ -45,8 +45,8 @@ module BackupEngine
 
       def _parse_encryption_key(name, config)
         if config.key?(:private_key)
-          @logger.warn("The backup client does not require private encryption keys")
-          @logger.warn("Storing the private key on the backup host is not secure.")
+          @logger.warn('The backup client does not require private encryption keys')
+          @logger.warn('Storing the private key on the backup host is not secure.')
         end
 
         return { public: File.read(config.fetch(:public_key)) }

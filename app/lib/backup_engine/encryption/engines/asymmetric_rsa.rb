@@ -11,7 +11,7 @@ module BackupEngine
       # { "key name" => {public: "pubkey", private: "privkey" }
       # private can be omitted for encryption (backups) and public can be omitted for decryption (restores)
       class ASymmetricRSA
-        DEFAULT_SYMMETRIC_ALGORITHM = 'AES-256-CBC'
+        DEFAULT_SYMMETRIC_ALGORITHM = 'AES-256-CBC'.freeze
 
         def initialize(communicator:, keys:, logger:)
           @communicator = communicator
@@ -22,11 +22,12 @@ module BackupEngine
             # Use the sha256 of the user name as the internal name
             # This is to both avoid naming problems when uploading and to obfuscate the key name
             keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name)
-            raise("Key name sha collission") if @keys.key?(keys_key)
+            raise('Key name sha collission') if @keys.key?(keys_key)
+
             @keys[keys_key] = rsa_keys.merge(name: name)
           end
 
-          raise("No encryption keys") if @keys.empty?
+          raise('No encryption keys') if @keys.empty?
         end
 
         def exists?(path:)
@@ -42,7 +43,7 @@ module BackupEngine
           # Instead it uploads a new symmetric block, and updates all asymmetric keys to point at it
           # Orphaned blocks are intended to be cleaned up by a cleaner tool.
           symmetric_details = symmetric_encrypt(base_path: path, payload: payload, metadata: metadata)
-          
+
           @keys.each_pair do |key_id, key_values|
             raise("No public key for #{key_values[:name]}") if key_values[:public].nil?
 
@@ -52,8 +53,8 @@ module BackupEngine
 
             @communicator.upload(path: symmetric_key_path(path, key_id),
                                  payload: encrypted_key,
-                                 metadata: { 
-                                   encryption: { 
+                                 metadata: {
+                                   encryption: {
                                      algorithm: 'RSA',
                                      target: {
                                        algorithm: symmetric_details[:algorithm],
@@ -67,7 +68,7 @@ module BackupEngine
         def decrypt(path:)
           @keys.each_pair do |key_id, key_values|
             if key_values[:private].nil?
-              @logger.error("No private key for #{key_values[:name]}") 
+              @logger.error("No private key for #{key_values[:name]}")
               next
             end
 
@@ -84,7 +85,7 @@ module BackupEngine
 
           raise("Unable to decrypt #{path} with any available RSA keys")
         end
-          
+
         private
 
         def symmetric_key_path(base_path, key_id)
@@ -96,13 +97,13 @@ module BackupEngine
           key_sha = BackupEngine::Checksums::Engines::SHA256.new.block(key)
           path = base_path.join('asym_blocks').join(key_sha.to_s)
 
-          symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator, 
+          symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator,
                                                                               settings: {
                                                                                 key: key,
                                                                                 algorithm: DEFAULT_SYMMETRIC_ALGORITHM
                                                                               })
           symmetric_engine.encrypt(path: path, payload: payload, metadata: metadata)
-          return { 
+          return {
             key: Base64.encode64(key),
             algorithm: DEFAULT_SYMMETRIC_ALGORITHM,
             path: path

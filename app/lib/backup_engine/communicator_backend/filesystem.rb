@@ -6,7 +6,7 @@ module BackupEngine
     class Filesystem
       def initialize(base_path:)
         @base_path = Pathname.new(base_path).freeze
-        raise("base path does not exist") unless @base_path.directory?
+        raise('base path does not exist') unless @base_path.directory?
       end
 
       def upload(path:, payload:)
@@ -16,7 +16,7 @@ module BackupEngine
       end
 
       def exists?(path:)
-        File.exists?(@base_path.join(path))
+        File.exist?(@base_path.join(path))
       end
 
       def download(path:)

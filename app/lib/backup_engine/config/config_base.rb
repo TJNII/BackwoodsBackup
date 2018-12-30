@@ -10,16 +10,15 @@ module BackupEngine
     end
 
     class ConfigBase
-
       private
 
       def _parse_communicator_block(config)
         @communicator = BackupEngine::Communicator.new(config)
       end
-        
+
       def _parse_encryption_block(config)
         # Currently only supporting asymmetric encryption with RSA keys
-        raise("Only RSA encryption is supported") if config.fetch(:type) != 'RSA'
+        raise('Only RSA encryption is supported') if config.fetch(:type) != 'RSA'
 
         encryption_keys = {}
         config.fetch(:keys).each_pair do |name, key_config|

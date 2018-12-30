@@ -16,9 +16,9 @@ module BackupEngine
         @stamp = Time.now.to_i.freeze
         @manifest = {}
       end
-    
+
       def path
-        Pathname.new("manifests").join(@backup_host.to_s).join(@stamp.to_s)
+        Pathname.new('manifests').join(@backup_host.to_s).join(@stamp.to_s)
       end
 
       def upload(checksum_engine:, encryption_engine:, compression_engine:)
@@ -26,7 +26,7 @@ module BackupEngine
                             stamp: @stamp,
                             host: @backup_host,
                             manifest: @manifest)
-      
+
         compression_result = compression_engine.compress(payload)
         encryption_engine.encrypt(path: path,
                                   payload: compression_result.payload,
@@ -53,7 +53,7 @@ module BackupEngine
           stat: stat
         }
       end
-      
+
       def create_symlink_backup_entry(path:, target:)
         @manifest[path] = {
           type: :symlink,
@@ -66,6 +66,7 @@ module BackupEngine
     def self.download(path:, encryption_engine:)
       decrypted_data = encryption_engine.decrypt(path: path)
       raise(DecodeError, "Metadata version mismatch: #{decrypted_data[:metadata][:version]}:#{METADATA_VERSION}") if decrypted_data[:metadata][:version] != Manifest::VERSION
+
       data = BackupEngine::Compression::Engine.decompress(metadata: decrypted_data[:metadata][:compression], payload: decrypted_data[:payload])
       BackupEngine::Checksums::Engine.parse(decrypted_data[:metadata][:checksum]).verify_block(data)
 

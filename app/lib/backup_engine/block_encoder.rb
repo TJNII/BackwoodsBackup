@@ -4,7 +4,7 @@ module BackupEngine
 
     class BlockError < StandardError
     end
-    
+
     class Block
       attr_reader :length, :data, :compression_percent
 
@@ -35,7 +35,7 @@ module BackupEngine
                                      checksum: @checksum,
                                      compression: compression_result.metadata
                                    })
-        return {compression_percent: compression_result.compression_percent}
+        return { compression_percent: compression_result.compression_percent }
       end
 
       def verify(length:, checksum:)
@@ -47,6 +47,7 @@ module BackupEngine
     def self.restore(path:, encryption_engine:)
       decrypted_data = encryption_engine.decrypt(path: path)
       raise(BlockError, "Metadata version mismatch: #{decrypted_data[:metadata][:version]}:#{METADATA_VERSION}") if decrypted_data[:metadata][:version] != METADATA_VERSION
+
       data = BackupEngine::Compression::Engine.decompress(metadata: decrypted_data[:metadata][:compression], payload: decrypted_data[:payload])
       checksum_engine = BackupEngine::Checksums::Engine.parse(decrypted_data[:metadata][:checksum]).engine
 
@@ -56,7 +57,7 @@ module BackupEngine
 
       block.verify(length: decrypted_data[:metadata][:length],
                    checksum: decrypted_data[:metadata][:checksum])
-      
+
       return block
     end
   end

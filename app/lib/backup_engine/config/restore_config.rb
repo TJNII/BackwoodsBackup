@@ -20,7 +20,7 @@ module BackupEngine
       def to_engine_hash
         return {
           encryption_engine: @encryption_engine,
-          logger: @logger,
+          logger: @logger
         }
       end
 

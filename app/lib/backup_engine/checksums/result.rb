@@ -7,7 +7,7 @@ module BackupEngine
 
     class Result
       attr_reader :checksum, :algorithm
-      
+
       def initialize(checksum:, algorithm:)
         raise 'nil checksum' if checksum.nil?
         raise 'nil algorithm' if algorithm.nil?
@@ -39,10 +39,12 @@ module BackupEngine
         if other.is_a? BackupEngine::Checksums::Result
           return false if other.algorithm != @algorithm
           return false if other.checksum != @checksum
+
           return true
         elsif other.is_a? Hash
-          return false if other.fetch(:algorithm)  != @algorithm
+          return false if other.fetch(:algorithm) != @algorithm
           return false if other.fetch(:checksum) != @checksum
+
           return true
         else
           raise("Can't compare BackupEngine::Checksums::Result to #{other.class}")
