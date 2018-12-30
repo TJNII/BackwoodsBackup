@@ -41,6 +41,8 @@ module BackupEngine
         case stat.file_type
         when :file
           _backup_file(path: path, stat: stat)
+        when :fifo
+          _backup_fifo(path: path, stat: stat)
         when :directory
           _backup_directory(path: path, stat: stat)
         else
@@ -110,6 +112,11 @@ module BackupEngine
 
       def _backup_directory(path:, stat:)
         @manifest.create_directory_backup_entry(path: path, stat: stat)
+        @logger.info("#{path}: backed up")
+      end
+
+      def _backup_fifo(path:, stat:)
+        @manifest.create_fifo_backup_entry(path: path, stat: stat)
         @logger.info("#{path}: backed up")
       end
 

@@ -31,6 +31,8 @@ module BackupEngine
           case metadata['type']
           when 'file'
             _restore_file(path: full_path, metadata: metadata)
+          when 'fifo'
+            _restore_fifo(path: full_path, metadata: metadata)
           when 'directory'
             _restore_directory(path: full_path, metadata: metadata)
           when 'symlink'
@@ -73,6 +75,12 @@ module BackupEngine
         rescue BackupEngine::Checksums::ChecksumMismatch => e
           raise("Restore Error: #{path}: Checksum mismatch: #{e}")
         end
+        _set_attributes(path: path, metadata: metadata)
+        @logger.info("#{path}: Restored")
+      end
+
+      def _restore_fifo(path:, metadata:)
+        File.mkfifo(path)
         _set_attributes(path: path, metadata: metadata)
         @logger.info("#{path}: Restored")
       end

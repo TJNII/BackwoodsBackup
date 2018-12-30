@@ -47,6 +47,13 @@ module BackupEngine
         }
       end
 
+      def create_fifo_backup_entry(path:, stat:)
+        @manifest[path] = {
+          type: :fifo,
+          stat: stat
+        }
+      end
+
       def create_directory_backup_entry(path:, stat:)
         @manifest[path] = {
           type: :directory,
