@@ -47,7 +47,7 @@ module BackupEngine
         end
 
         if stat.file_type == :directory
-          path.children.each do |sub_path|
+          path.children.sort.each do |sub_path|
             backup_path(path: sub_path)
           end
         end
