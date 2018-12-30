@@ -13,16 +13,22 @@ module BackupEngine
     class Engine
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:)
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, path_exclusions: [])
         @checksum_engine = checksum_engine
         @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host)
         @encryption_engine = encryption_engine
         @compression_engine = compression_engine
         @chunk_size = chunk_size
         @logger = logger
+        @path_exclusions = path_exclusions.freeze
       end
 
       def backup_path(path:)
+        if _path_excluded?(path)
+          @logger.info("Skipping #{path} per exclusion list")
+          return
+        end
+
         # File.stat follows symlinks.
         if File.symlink? path
           _backup_symlink(path: path)
@@ -111,6 +117,15 @@ module BackupEngine
         target = File.readlink(path)
         @manifest.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
+      end
+
+      def _path_excluded?(path)
+        @path_exclusions.each do |exclusion|
+          if path.to_s =~ /#{exclusion}/
+            return true
+          end
+        end
+        return false
       end
     end
   end

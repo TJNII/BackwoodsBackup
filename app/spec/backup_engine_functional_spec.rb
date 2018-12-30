@@ -11,8 +11,8 @@ require 'logger'
 
 # This is intended to be run in a Docker container.
 describe 'Backup Engine: Functional' do
-  target_paths = Pathname.new('/').children.reject { |path| %w[/proc /sys /dev /tmp].include? path.to_s }.freeze
-#  target_paths = [Pathname.new('/etc/hostname')]
+  excluded_paths = %w[/proc /sys /dev /tmp].freeze
+  target_paths = Pathname.new('/').children.sort.freeze
 
   before :all do
     @logger = Logger.new(STDOUT)
@@ -38,7 +38,8 @@ describe 'Backup Engine: Functional' do
                                                             compression_engine: @compression_engine,
                                                             host: 'testhost',
                                                             chunk_size: (512 * 1024), # Test with a small block size
-                                                            logger: @logger)
+                                                            logger: @logger,
+                                                            path_exclusions: excluded_paths.map { |path| "^#{path}" })
   end
 
   target_paths.each do |path|
@@ -58,8 +59,14 @@ describe 'Backup Engine: Functional' do
   end
 
   target_paths.each do |path|
-    # Intentionally not using Ruby File methods in order to test differently than the implementation,
+    if excluded_paths.include?(path.to_s)
+      it "does not restore excluded path #{path}" do
+        expect(File.exists?("/tmp/test_restore/#{path}")).to be false
+      end
+      next
+    end
 
+    # Intentionally not using Ruby File methods in order to test differently than the implementation,
     describe "#{path} permissions" do
       files = `find #{path}`.split("\n").map { |file| file.sub(%r{^/}, '') }
       before :all do
