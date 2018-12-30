@@ -15,18 +15,23 @@ describe 'Backup Engine: Functional' do
 #  target_paths = [Pathname.new('/etc/hostname')]
 
   before :all do
+    @logger = Logger.new(STDOUT)
     @communicator = BackupEngine::Communicator.new(type: "filesystem", backend_config: {base_path: '/tmp/test_backup_output'})
 
-#    @encryption_engine = BackupEngine::Encryption::Engines::None.new(communicator: @communicator)
-    @encryption_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator,
-                                                                          settings: {
-                                                                            algorithm: 'AES-256-CBC',
-                                                                            key: OpenSSL::Cipher.new('AES-256-CBC').random_key
-                                                                          })
+    @encryption_keys = {}.tap do |h|
+      # TODO: Test with multiple keys
+      1.times do |c|
+        key = OpenSSL::PKey::RSA.new(2048)
+        h["key#{c}"] = { public: key.public_key.to_s, private: key.to_s }
+      end
+    end
 
+    @encryption_engine = BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: @communicator,
+                                                                              keys: @encryption_keys,
+                                                                              logger: @logger)
+    
     @checksum_engine = BackupEngine::Checksums::Engines::SHA256.new
     @compression_engine = BackupEngine::Compression::Engines::Zlib.new
-    @logger = Logger.new(STDOUT)
 
     @backup_engine = BackupEngine::BackupClient::Engine.new(checksum_engine: @checksum_engine,
                                                             encryption_engine: @encryption_engine,
