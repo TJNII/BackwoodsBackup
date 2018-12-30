@@ -40,7 +40,8 @@ describe 'Backup Engine: Functional' do
                                                             host: 'testhost',
                                                             chunk_size: (512 * 1024), # Test with a small block size
                                                             logger: @logger,
-                                                            path_exclusions: excluded_paths.map { |path| "^#{path}" })
+                                                            path_exclusions: excluded_paths.map { |path| "^#{path}" },
+                                                            tempdirs: { (1024**3) => '/ramdisk' })
   end
 
   target_paths.each do |path|

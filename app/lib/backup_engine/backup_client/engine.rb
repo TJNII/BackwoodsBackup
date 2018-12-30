@@ -13,7 +13,7 @@ module BackupEngine
     class Engine
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, path_exclusions: [])
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, path_exclusions: [], tempdirs: {})
         @checksum_engine = checksum_engine
         @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host)
         @encryption_engine = encryption_engine
@@ -21,6 +21,7 @@ module BackupEngine
         @chunk_size = chunk_size
         @logger = logger
         @path_exclusions = path_exclusions.freeze
+        @tempdirs = tempdirs.freeze
       end
 
       def backup_path(path:)
@@ -69,13 +70,12 @@ module BackupEngine
         checksum = @checksum_engine.file(path)
 
         # Copy the target to a tmpfile in case it changes while backing up
-        Tempfile.create('backup_client') do |tmpfile| # TODO: configurable path
+        _create_tempfile(path: path, stat: stat) do |tmpfile|
           FileUtils.chmod(0o600, tmpfile.path)
           FileUtils.cp(path, tmpfile.path)
           if @checksum_engine.file(tmpfile.path) != checksum
             @logger.error("#{path} changed while being backed up")
-            # Blocks are not iterators
-            return # rubocop: disable Lint/NonLocalExitFromIterator
+            return
           end
 
           raise('INTERNAL ERROR: tmpfile pointer not at 0') unless tmpfile.tell == 0
@@ -117,6 +117,24 @@ module BackupEngine
         target = File.readlink(path)
         @manifest.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
+      end
+
+      def _create_tempfile(path:, stat:)
+        # @tempdirs is a hash of { [max size in bytes] => [path] } pairs
+        # This allows for multiple tiers of temp space
+        # For example: small files in ram, medium files on SSD, large files on spinning rust
+        # If the file size exceedes all max sizes a nil tempdir is passed to Tempfile.create, which then uses the default
+        tempdir = @tempdirs.select { |k| k > stat.size }.values[0]
+        if tempdir.nil?
+          # This is a warning as the Tempfile default is inside the container, which is likely a slow copy-on-write filesystem
+          @logger.warn("#{path} (#{stat.size} bytes) is larger than all configured temp dirs, using Tempfile default")
+        else
+          @logger.debug("#{path}: #{stat.size} bytes: using #{tempdir} temp space")
+        end
+
+        Tempfile.create('backup_client', tempdir) do |tmpfile|
+          yield(tmpfile)
+        end
       end
 
       def _path_excluded?(path)
