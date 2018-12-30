@@ -50,7 +50,8 @@ module BackupEngine
       end
 
       def _restore_file(path:, metadata:)
-        Tempfile.create('restore_client') do |tmpfile| # TODO: configurable path
+        # Create on the same filesystem as the target so the move is atomic
+        Tempfile.create('restore_client', path.dirname.to_s) do |tmpfile|
           FileUtils.chmod(0o600, tmpfile.path)
 
           offset = tmpfile.tell
