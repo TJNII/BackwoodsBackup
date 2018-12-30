@@ -2,8 +2,8 @@ require_relative 'spec_helper.rb'
 
 require_relative '../lib/backup_engine/communicator.rb'
 require_relative '../lib/backup_engine/checksums/engine.rb'
-require_relative '../lib/backup_engine/encryption/engine.rb'
 require_relative '../lib/backup_engine/compression/engine.rb'
+require_relative '../lib/backup_engine/encryption/engine.rb'
 require_relative '../lib/backup_engine/backup_client/engine.rb'
 require_relative '../lib/backup_engine/restore_client/engine.rb'
 
@@ -55,7 +55,9 @@ describe 'Backup Engine: Functional' do
   it 'restores without errors' do
     restore_engine = BackupEngine::RestoreClient::Engine.new(encryption_engine: @encryption_engine, logger: @logger)
     restore_engine.restore_manifest(manifest_path: @backup_engine.manifest.path,
-                                    restore_path: Pathname.new('/tmp/test_restore'))
+                                    restore_path: Pathname.new('/tmp/test_restore'),
+                                    target_path_regex: '.*'
+                                    )
   end
 
   target_paths.each do |path|

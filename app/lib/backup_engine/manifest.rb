@@ -1,5 +1,8 @@
 require 'pathname'
 
+require_relative 'checksums/engine.rb'
+require_relative 'compression/engine.rb'
+
 module BackupEngine
   module Manifest
     class DecodeError < StandardError

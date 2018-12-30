@@ -25,6 +25,8 @@ module BackupEngine
             raise("Key name sha collission") if @keys.key?(keys_key)
             @keys[keys_key] = rsa_keys.merge(name: name)
           end
+
+          raise("No encryption keys") if @keys.empty?
         end
 
         def exists?(path:)

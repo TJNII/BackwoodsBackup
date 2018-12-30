@@ -1,7 +1,9 @@
 require 'tempfile'
 require 'fileutils'
 
+require_relative '../block_encoder.rb'
 require_relative '../checksums/engine.rb'
+require_relative '../manifest.rb'
 
 module BackupEngine
   module RestoreClient
@@ -11,10 +13,15 @@ module BackupEngine
         @logger = logger
       end
 
-      def restore_manifest(manifest_path:, restore_path:)
+      def restore_manifest(manifest_path:, restore_path:, target_path_regex:)
         manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
         
         manifest["manifest"].each_pair do |path, metadata|
+          unless path =~ /#{target_path_regex}/
+            @logger.debug("Skipping #{path} per target_path_regex")
+            next
+          end
+
           path_obj = Pathname.new(path)
           path_obj = path_obj.relative_path_from(Pathname.new('/')) if path_obj.absolute?
           full_path = restore_path.join(path_obj)

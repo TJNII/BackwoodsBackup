@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'optparse'
+
+require_relative '../lib/backup_engine/config/backup_config.rb'
+require_relative '../lib/backup_engine/backup_client/engine.rb'
+
+def parse_args
+  options = {}
+  OptionParser.new do |opts|
+    opts.banner = "Usage: backup.rb [options]"
+
+    opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      options[:verbose] = v
+    end
+
+    opts.on("-f FILE", "--configfile FILE", "Specify configuration File") do |f|
+      options[:config_file] = f
+    end
+  end.parse!
+
+  raise("--configfile flag is required") unless options.key?(:config_file)
+  
+  return options
+end
+
+def main
+  options = parse_args
+
+  logger = Logger.new(STDOUT)
+  if options[:verbose]
+    logger.level = Logger::DEBUG
+  else
+    logger.level = Logger::INFO
+  end
+
+  config = BackupEngine::Config::BackupConfig.new(path: options[:config_file], logger: logger)
+
+  backup_engine = BackupEngine::BackupClient::Engine.new(config.to_engine_hash)
+  config.paths.each do |path|
+    backup_engine.backup_path(path: Pathname.new(path))
+  end
+  
+  backup_engine.upload_manifest
+end
+
+main

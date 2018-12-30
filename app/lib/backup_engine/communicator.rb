@@ -1,3 +1,5 @@
+require 'powerpack/hash'
+
 require_relative 'communicator_backend/filesystem.rb'
 require_relative 'communicator_backend/s3.rb'
 require_relative 'communicator_backend/encoder.rb'
@@ -7,9 +9,9 @@ module BackupEngine
     def initialize(type:, backend_config:)
       @backend = case type
                  when 'filesystem'
-                   CommunicatorBackend::Filesystem.new(backend_config)
+                   CommunicatorBackend::Filesystem.new(backend_config.symbolize_keys)
                  when 's3'
-                   CommunicatorBackend::S3.new(backend_config)
+                   CommunicatorBackend::S3.new(backend_config.symbolize_keys)
                  else
                    raise("Unknown communicator type #{type}")
                  end

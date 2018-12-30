@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'optparse'
+
+require_relative '../lib/backup_engine/config/restore_config.rb'
+require_relative '../lib/backup_engine/restore_client/engine.rb'
+
+def parse_args
+  options = {
+    verbose: false,
+    target_path: '.*'
+  }
+
+  OptionParser.new do |opts|
+    opts.banner = "Usage: backup.rb [options]"
+
+    opts.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      options[:verbose] = v
+    end
+
+    opts.on("-f FILE", "--configfile FILE", "Specify configuration File") do |f|
+      options[:config_file] = f
+    end
+
+    opts.on("-t PATH", "--targetpath PATH", "Target restore path regex") do |p|
+      options[:target_path] = p
+    end
+
+    opts.on("-o PATH", "--outputpath PATH", "Restore output path") do |p|
+      options[:output_path] = p
+    end
+
+    opts.on("-m PATH", "--manifest PATH", "target Manifest") do |p|
+      options[:manifest] = p
+    end
+  end.parse!
+
+  raise("--configfile flag is required") unless options.key?(:config_file)
+  raise("--outputpath flag is required") unless options.key?(:output_path)
+  raise("--manifest flag is required") unless options.key?(:manifest)
+  
+  return options
+end
+
+def main
+  options = parse_args
+
+  logger = Logger.new(STDOUT)
+  if options[:verbose]
+    logger.level = Logger::DEBUG
+  else
+    logger.level = Logger::INFO
+  end
+
+  config = BackupEngine::Config::RestoreConfig.new(path: options[:config_file], logger: logger)
+
+  restore_engine = BackupEngine::RestoreClient::Engine.new(config.to_engine_hash)
+  restore_engine.restore_manifest(manifest_path: Pathname.new(options[:manifest]),
+                                  restore_path: Pathname.new(options[:output_path]),
+                                  target_path_regex: options[:target_path]
+                                  )
+end
+
+main
