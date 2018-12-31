@@ -1,6 +1,7 @@
 require 'base64'
 require 'openssl'
 require 'pathname'
+require 'securerandom'
 
 module BackupEngine
   module Encryption
@@ -94,8 +95,8 @@ module BackupEngine
 
         def symmetric_encrypt(base_path:, payload:, metadata:)
           key = OpenSSL::Cipher.new(DEFAULT_SYMMETRIC_ALGORITHM).random_key
-          key_sha = BackupEngine::Checksums::Engines::SHA256.new.block(key)
-          path = base_path.join('asym_blocks').join(key_sha.to_s)
+          key_id = SecureRandom.uuid
+          path = base_path.join('asym_blocks').join(key_id.to_s)
 
           symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator,
                                                                               settings: {
