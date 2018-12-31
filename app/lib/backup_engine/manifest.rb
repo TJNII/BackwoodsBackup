@@ -13,10 +13,13 @@ module BackupEngine
     class Manifest
       VERSION = 1
 
+      attr_accessor :partial
+
       def initialize(backup_host:)
         @backup_host = backup_host.freeze
         @stamp = Time.now.to_i.freeze
         @manifest = {}
+        @partial = false
       end
 
       def path
@@ -27,6 +30,7 @@ module BackupEngine
         payload = JSON.dump(version: VERSION,
                             stamp: @stamp,
                             host: @backup_host,
+                            partial: @partial,
                             manifest: @manifest)
 
         compression_result = compression_engine.compress(payload)
@@ -81,7 +85,7 @@ module BackupEngine
     # TODO: Very similar to block_encoder restore
     def self.download(path:, encryption_engine:)
       decrypted_data = encryption_engine.decrypt(path: path)
-      raise(DecodeError, "Metadata version mismatch: #{decrypted_data[:metadata][:version]}:#{METADATA_VERSION}") if decrypted_data[:metadata][:version] != Manifest::VERSION
+      raise(DecodeError, "Metadata version mismatch: #{decrypted_data[:metadata][:version]}:#{Manifest::VERSION}") if decrypted_data[:metadata][:version] != Manifest::VERSION
 
       data = BackupEngine::Compression::Engine.decompress(metadata: decrypted_data[:metadata][:compression], payload: decrypted_data[:payload])
       BackupEngine::Checksums::Engine.parse(decrypted_data[:metadata][:checksum]).verify_block(data)
@@ -105,7 +109,6 @@ module BackupEngine
         ret_val.manifest[Base64.decode64(b64_path)].stat = OpenStruct.new(payload['stat'])
       end
 
-      puts ret_val
       return ret_val.freeze
     end
   end

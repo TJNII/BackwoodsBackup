@@ -15,6 +15,7 @@ module BackupEngine
 
       def restore_manifest(manifest_path:, restore_path:, target_path_regex:)
         manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
+        @logger.warn('Manifest is incomplete and will be missing files') if manifest.partial
 
         manifest.manifest.each_pair do |path, metadata|
           unless path =~ /#{target_path_regex}/

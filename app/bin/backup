@@ -18,6 +18,18 @@ def parse_args
     opts.on('-f FILE', '--configfile FILE', 'Specify configuration File') do |f|
       options[:config_file] = f
     end
+
+    opts.on('-p PATH', '--path PATH', 'Backup only specified path') do |p|
+      options[:path] = p
+    end
+
+    opts.on('--no-manifest', 'Disable saving the manifest') do |m|
+      options[:no_manifest] = m
+    end
+
+    opts.on('--[no-]partial-manifest', 'Enable/disable saving of partial manifests') do |m|
+      options[:partial_manifest] = m
+    end
   end.parse!
 
   raise('--configfile flag is required') unless options.key?(:config_file)
@@ -34,11 +46,25 @@ def main
   config = BackupEngine::Config::BackupConfig.new(path: options[:config_file], logger: logger)
 
   backup_engine = BackupEngine::BackupClient::Engine.new(config.to_engine_hash)
-  config.paths.each do |path|
-    backup_engine.backup_path(path: Pathname.new(path))
-  end
 
-  backup_engine.upload_manifest
+  partial_manifest = false
+  begin
+    if options[:path]
+      partial_manifest = true
+      logger.warn('Overriding config path per command line flags')
+      backup_engine.backup_path(path: Pathname.new(options[:path]))
+    else
+      config.paths.each do |path|
+        backup_engine.backup_path(path: Pathname.new(path))
+      end
+    end
+  ensure
+    if (!partial_manifest || options[:partial_manifest]) && !options[:no_manifest]
+      backup_engine.upload_manifest(partial: partial_manifest)
+    else
+      logger.warn('Not uploading manifest')
+    end
+  end
 end
 
 main

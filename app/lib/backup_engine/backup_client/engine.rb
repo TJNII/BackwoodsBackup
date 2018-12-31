@@ -60,10 +60,17 @@ module BackupEngine
         raise exc
       end
 
-      def upload_manifest
+      def upload_manifest(partial: false)
+        @manifest.partial = true if partial
         @manifest.upload(checksum_engine: @checksum_engine,
                          encryption_engine: @encryption_engine,
                          compression_engine: @compression_engine)
+
+        if partial
+          @logger.warn("Uploaded incomplete manifest to #{@manifest.path}")
+        else
+          @logger.info("Uploaded manifest to #{@manifest.path}")
+        end
       end
 
       private
