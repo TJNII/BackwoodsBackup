@@ -71,7 +71,7 @@ describe 'Backup Engine: Functional' do
 
     # Intentionally not using Ruby File methods in order to test differently than the implementation,
     describe "#{path} permissions" do
-      files = `find #{path}`.split("\n").map { |file| file.sub(%r{^/}, '') }
+      files = `find #{path}`.force_encoding('ASCII-8BIT').split("\n").map { |file| file.sub(%r{^/}, '') }
       before :all do
         # Stat all the files in one shell to avoid the cost of a subshell for each file
         files_fd = Tempfile.new
@@ -80,7 +80,7 @@ describe 'Backup Engine: Functional' do
 
         @perm_output = Hash.new { |h, k| h[k] = Hash.new }.tap do |hash|
           { src: '/tmp/test_restore', dst: '/' }.each_pair do |key, tgt_path|
-            raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do ls -nd --time-style=+ "${file}"; done`
+            raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do ls -nd --time-style=+ "${file}"; done`.force_encoding('ASCII-8BIT')
             raise("Failed to gather #{key} stats in #{tgt_path}") if $CHILD_STATUS != 0
 
             raw.split("\n").each do |line|
@@ -98,7 +98,7 @@ describe 'Backup Engine: Functional' do
       end
 
       describe "#{path} contents" do
-        files = `find #{path} -type f`.split("\n").map { |file| file.sub(%r{^/}, '') }
+        files = `find #{path} -type f`.force_encoding('ASCII-8BIT').split("\n").map { |file| file.sub(%r{^/}, '') }
         before :all do
           # Stat all the files in one shell to avoid the cost of a subshell for each file
           files_fd = Tempfile.new
@@ -107,7 +107,7 @@ describe 'Backup Engine: Functional' do
 
           @cont_output = Hash.new { |h, k| h[k] = Hash.new }.tap do |hash|
             { src: '/tmp/test_restore', dst: '/' }.each_pair do |key, tgt_path|
-              raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do echo "$(ls "${file}" -d):$(cat "${file}" | wc -c):$(sha512sum "${file}")"; done`
+              raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do echo "$(ls "${file}" -d):$(cat "${file}" | wc -c):$(sha512sum "${file}")"; done`.force_encoding('ASCII-8BIT')
               raise("Failed to check #{key} contents #{tgt_path}") if $CHILD_STATUS != 0
 
               raw.split("\n").map { |line| line.split(':') }.each do |line|

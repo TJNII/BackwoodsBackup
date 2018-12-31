@@ -16,7 +16,7 @@ module BackupEngine
       def restore_manifest(manifest_path:, restore_path:, target_path_regex:)
         manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
 
-        manifest['manifest'].each_pair do |path, metadata|
+        manifest.manifest.each_pair do |path, metadata|
           unless path =~ /#{target_path_regex}/
             @logger.debug("Skipping #{path} per target_path_regex")
             next
@@ -28,7 +28,7 @@ module BackupEngine
 
           FileUtils.mkdir_p(full_path.dirname) unless full_path.dirname.directory?
 
-          case metadata['type']
+          case metadata.type
           when 'file'
             _restore_file(path: full_path, metadata: metadata)
           when 'fifo'
@@ -47,8 +47,8 @@ module BackupEngine
 
       def _set_attributes(path:, metadata:)
         # Order important: chown after chmod will reset sticky bits
-        FileUtils.chown(metadata['stat']['uid'], metadata['stat']['gid'], path)
-        FileUtils.chmod(metadata['stat']['mode'], path)
+        FileUtils.chown(metadata.stat.uid, metadata.stat.gid, path)
+        FileUtils.chmod(metadata.stat.mode, path)
       end
 
       def _restore_file(path:, metadata:)
@@ -57,7 +57,7 @@ module BackupEngine
           FileUtils.chmod(0o600, tmpfile.path)
 
           offset = tmpfile.tell
-          metadata['block_map'].each do |block_metadata|
+          metadata.block_map.each do |block_metadata|
             raise("Restore Error: #{path}: offset mismatch: #{offset}:#{block_metadata['offset']}") if offset != block_metadata['offset']
 
             tmpfile.write(BackupEngine::BlockEncoder.restore(path: Pathname.new(block_metadata['path']), encryption_engine: @encryption_engine).data)
@@ -67,9 +67,9 @@ module BackupEngine
 
           tmpfile.close
 
-          raise("Restore Error: #{path}: Size mismatch: #{File.size(tmpfile.path)}:#{metadata['stat']['size']}") if File.size(tmpfile.path) != metadata['stat']['size']
+          raise("Restore Error: #{path}: Size mismatch: #{File.size(tmpfile.path)}:#{metadata.stat.size}") if File.size(tmpfile.path) != metadata.stat.size
 
-          BackupEngine::Checksums::Engine.parse(metadata['checksum']).verify_file(tmpfile.path)
+          BackupEngine::Checksums::Engine.parse(metadata.checksum).verify_file(tmpfile.path)
 
           FileUtils.mv(tmpfile.path, path)
         rescue BackupEngine::Checksums::ChecksumMismatch => e
@@ -92,7 +92,7 @@ module BackupEngine
       end
 
       def _restore_symlink(path:, metadata:)
-        FileUtils.ln_s(metadata.fetch('target'), path)
+        FileUtils.ln_s(metadata.target, path)
         @logger.info("#{path}: Restored")
       end
     end

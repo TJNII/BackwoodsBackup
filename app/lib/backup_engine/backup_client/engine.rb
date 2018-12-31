@@ -146,7 +146,9 @@ module BackupEngine
 
       def _path_excluded?(path)
         @path_exclusions.each do |exclusion|
-          return true if path.to_s =~ /#{exclusion}/
+          # The encode resolves issues with non-ASCII filenames.
+          # It's a little fast and loose, but as this is a exclusion matcher it should fail-safe.
+          return true if path.to_s.encode!('UTF-8', invalid: :replace, replace: '.') =~ /#{exclusion}/
         end
         return false
       end
