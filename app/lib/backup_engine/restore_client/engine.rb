@@ -17,15 +17,8 @@ module BackupEngine
         manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
         @logger.warn('Manifest is incomplete and will be missing files') if manifest.partial
 
-        manifest.manifest.each_pair do |path, metadata|
-          unless path =~ /#{target_path_regex}/
-            @logger.debug("Skipping #{path} per target_path_regex")
-            next
-          end
-
-          path_obj = Pathname.new(path)
-          path_obj = path_obj.relative_path_from(Pathname.new('/')) if path_obj.absolute?
-          full_path = restore_path.join(path_obj)
+        _targeted_manifest(manifest: manifest.manifest, target_path_regex: target_path_regex).each_pair do |path_obj, metadata|
+          full_path = restore_path.join_relative(path_obj)
 
           FileUtils.mkdir_p(full_path.dirname) unless full_path.dirname.directory?
 
@@ -95,6 +88,37 @@ module BackupEngine
       def _restore_symlink(path:, metadata:)
         FileUtils.ln_s(metadata.target, path)
         @logger.info("#{path}: Restored")
+      end
+
+      def _targeted_manifest(manifest:, target_path_regex:)
+        @logger.debug('Generating targeted manifest')
+        targeted_manifest = {}
+        manifest.each_pair do |path, metadata|
+          unless path =~ /#{target_path_regex}/
+            @logger.debug("Skipping #{path} per target_path_regex")
+            next
+          end
+
+          path_obj = BackupEngine::Pathname.new(path)
+
+          # Include parent directories in the restore to restore directory permissisons
+          path_obj.fully_qualified_parent_directories.each do |parent_dir|
+            next if parent_dir.to_s == '/'
+            next if targeted_manifest.key?(parent_dir)
+
+            unless manifest.key?(parent_dir.to_s)
+              @logger.warn("Parent directory #{parent_dir} of target #{path} not in manifest")
+              next
+            end
+
+            @logger.debug("Adding parent directory #{parent_dir} of target #{path} to the target manifest")
+            targeted_manifest[parent_dir] = manifest[parent_dir.to_s]
+          end
+
+          targeted_manifest[path_obj] = metadata
+        end
+
+        return targeted_manifest
       end
     end
   end

@@ -30,6 +30,21 @@ describe 'Backup Engine: unit' do
       end
     end
 
+    describe '.fully_qualified_parent_directories' do
+      it 'Returns an array of fully qualified parent directories from an absolute path' do
+        test_array = described_class.new('/foo/bar/baz/foobar').fully_qualified_parent_directories
+        expect(test_array.length).to eq 4
+        expect(test_array[0]).to be_instance_of(described_class)
+        expect(test_array[0]).to eq described_class.new('/')
+        expect(test_array[1]).to be_instance_of(described_class)
+        expect(test_array[1]).to eq described_class.new('/foo')
+        expect(test_array[2]).to be_instance_of(described_class)
+        expect(test_array[2]).to eq described_class.new('/foo/bar')
+        expect(test_array[3]).to be_instance_of(described_class)
+        expect(test_array[3]).to eq described_class.new('/foo/bar/baz')
+      end
+    end
+
     describe '.to_a' do
       it 'returns the path as an array of Pathname objects' do
         [%w[/ foo bar baz], %w[. foo bar baz]].each do |test_array|

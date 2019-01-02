@@ -58,7 +58,7 @@ describe 'Backup Engine: Functional' do
   it 'restores without errors' do
     restore_engine = BackupEngine::RestoreClient::Engine.new(encryption_engine: @encryption_engine, logger: @logger)
     restore_engine.restore_manifest(manifest_path: @backup_engine.manifest.path,
-                                    restore_path: Pathname.new('/tmp/test_restore'),
+                                    restore_path: BackupEngine::Pathname.new('/tmp/test_restore'),
                                     target_path_regex: '.*')
   end
 

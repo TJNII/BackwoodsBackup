@@ -41,6 +41,25 @@ module BackupEngine
       to_a[0].to_s == SEPARATOR
     end
 
+    def eql?(other)
+      self == other
+    end
+
+    def hash
+      @wrapped_pathname.hash
+    end
+
+    def fully_qualified_parent_directories
+      raise('Fully qualified relative paths not supported') unless absolute?
+      ret_val = [to_a[0]]
+      # Skip first and last:
+      # First is set above to seed ret_val, and last is not a parent directory
+      to_a[1..-2].each_with_index do |dir, idx|
+        ret_val.push(ret_val[idx].join(dir))
+      end
+      return ret_val
+    end
+
     # This is used frequently, memoize for speed
     def to_a
       @to_a ||= _to_a
