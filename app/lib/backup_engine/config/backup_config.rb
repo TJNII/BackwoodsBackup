@@ -6,6 +6,7 @@ module BackupEngine
   module Config
     class BackupConfig < ConfigBase
       attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
+      attr_reader :docker_host_bind_path
 
       def initialize(path:, logger:)
         @logger = logger
@@ -27,6 +28,7 @@ module BackupEngine
         @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
 
         _parse_tempdirs_block(config.fetch(:tempdirs, {}))
+        @docker_host_bind_path = config.fetch(:docker_host_bind_path, '/host')
       rescue KeyError => e
         raise(ParseError, "Error parsing top level configuration: #{e}")
       end

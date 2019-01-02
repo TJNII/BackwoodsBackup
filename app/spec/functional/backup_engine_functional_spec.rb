@@ -1,14 +1,15 @@
 require 'English'
 require 'logger'
 
-require_relative 'spec_helper.rb'
+require_relative '../spec_helper.rb'
 
-require_relative '../lib/backup_engine/communicator.rb'
-require_relative '../lib/backup_engine/checksums/engine.rb'
-require_relative '../lib/backup_engine/compression/engine.rb'
-require_relative '../lib/backup_engine/encryption/engine.rb'
-require_relative '../lib/backup_engine/backup_client/engine.rb'
-require_relative '../lib/backup_engine/restore_client/engine.rb'
+require_relative '../../lib/backup_engine/communicator.rb'
+require_relative '../../lib/backup_engine/docker_bind_pathname.rb'
+require_relative '../../lib/backup_engine/checksums/engine.rb'
+require_relative '../../lib/backup_engine/compression/engine.rb'
+require_relative '../../lib/backup_engine/encryption/engine.rb'
+require_relative '../../lib/backup_engine/backup_client/engine.rb'
+require_relative '../../lib/backup_engine/restore_client/engine.rb'
 
 # This is intended to be run in a Docker container.
 describe 'Backup Engine: Functional' do
@@ -46,7 +47,7 @@ describe 'Backup Engine: Functional' do
 
   target_paths.each do |path|
     it "backs up #{path}" do
-      @backup_engine.backup_path(path: path)
+      @backup_engine.backup_path(path: BackupEngine::DockerBindPathname.new(bind_path: nil, relative_path: path))
     end
   end
 

@@ -31,12 +31,12 @@ module BackupEngine
         end
 
         # File.stat follows symlinks.
-        if File.symlink? path
+        if File.symlink? path.absolute_path
           _backup_symlink(path: path)
           return
         end
 
-        stat = BackupEngine::Stat.file_stat(path)
+        stat = BackupEngine::Stat.file_stat(path.absolute_path)
 
         case stat.file_type
         when :file
@@ -76,12 +76,12 @@ module BackupEngine
       private
 
       def _backup_file(path:, stat:)
-        checksum = @checksum_engine.file(path)
+        checksum = @checksum_engine.file(path.absolute_path)
 
         # Copy the target to a tmpfile in case it changes while backing up
         _create_tempfile(path: path, stat: stat) do |tmpfile|
           FileUtils.chmod(0o600, tmpfile.path)
-          FileUtils.cp(path, tmpfile.path)
+          FileUtils.cp(path.absolute_path, tmpfile.path)
           if @checksum_engine.file(tmpfile.path) != checksum
             @logger.error("#{path} changed while being backed up")
             return
@@ -128,7 +128,7 @@ module BackupEngine
       end
 
       def _backup_symlink(path:)
-        target = File.readlink(path)
+        target = File.readlink(path.absolute_path)
         @manifest.create_symlink_backup_entry(path: path, target: target)
         @logger.info("#{path}: backed up")
       end

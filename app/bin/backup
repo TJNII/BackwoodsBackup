@@ -3,6 +3,7 @@
 require 'logger'
 require 'optparse'
 
+require_relative '../lib/backup_engine/docker_bind_pathname.rb'
 require_relative '../lib/backup_engine/config/backup_config.rb'
 require_relative '../lib/backup_engine/backup_client/engine.rb'
 
@@ -52,10 +53,10 @@ def main
     if options[:path]
       partial_manifest = true
       logger.warn('Overriding config path per command line flags')
-      backup_engine.backup_path(path: Pathname.new(options[:path]))
+      backup_engine.backup_path(path: BackupEngine::DockerBindPathname.new(bind_path: config.docker_host_bind_path, relative_path: options[:path]))
     else
       config.paths.each do |path|
-        backup_engine.backup_path(path: Pathname.new(path))
+        backup_engine.backup_path(path: BackupEngine::DockerBindPathname.new(bind_path: config.docker_host_bind_path, relative_path: path))
       end
     end
   ensure
