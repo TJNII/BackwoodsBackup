@@ -6,7 +6,7 @@ module BackupEngine
   module Config
     class BackupConfig < ConfigBase
       attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
-      attr_reader :docker_host_bind_path
+      attr_reader :docker_host_bind_path, :set_name
 
       def initialize(path:, logger:)
         @logger = logger
@@ -18,6 +18,7 @@ module BackupEngine
         _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
         @paths = config.fetch(:paths)
         @host = config.fetch(:host)
+        @set_name = config.fetch(:set_name)
 
         # Optional blocks
         @checksum_engine = BackupEngine::Checksums::Engine.init_engine(algorithm: config.fetch(:checksum_algorithm, 'sha256'))
@@ -42,7 +43,8 @@ module BackupEngine
           chunk_size: @chunk_size,
           logger: @logger,
           path_exclusions: @path_exclusions,
-          tempdirs: @tempdirs
+          tempdirs: @tempdirs,
+          set_name: @set_name
         }
       end
 

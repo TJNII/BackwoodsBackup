@@ -13,9 +13,9 @@ module BackupEngine
     class Engine
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, path_exclusions: [], tempdirs: {})
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, set_name:, path_exclusions: [], tempdirs: {})
         @checksum_engine = checksum_engine
-        @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host)
+        @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host, set_name: set_name)
         @encryption_engine = encryption_engine
         @compression_engine = compression_engine
         @chunk_size = chunk_size

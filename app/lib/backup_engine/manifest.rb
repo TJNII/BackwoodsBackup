@@ -15,15 +15,16 @@ module BackupEngine
 
       attr_accessor :partial
 
-      def initialize(backup_host:)
+      def initialize(backup_host:, set_name:)
         @backup_host = backup_host.freeze
+        @set_name = set_name.freeze
         @stamp = Time.now.to_i.freeze
         @manifest = {}
         @partial = false
       end
 
       def path
-        Pathname.new('manifests').join(@backup_host.to_s).join(@stamp.to_s)
+        Pathname.new('manifests').join(@backup_host.to_s).join(@set_name.to_s).join(@stamp.to_s)
       end
 
       def upload(checksum_engine:, encryption_engine:, compression_engine:)
