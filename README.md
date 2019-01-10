@@ -26,7 +26,39 @@ The private key is not used for backups and can be safely stored offline.
 Configuration & Usage
 ---------------------
 
-To be documented in v1 merge
+### Generating RSA Keypairs
+
+The encryption keypairs are standard RSA keypairs.
+
+A keypair can be generated with OpenSSL:
+
+```
+openssl genrsa -out rsa.key.pem 2048
+openssl rsa -in rsa.key.pem -outform PEM -pubout -out rsa.pub.pem
+
+```
+
+Note this creates a keypair with no password.
+Data encryption keys are *strongly* recommended to be stored offline.
+Private keys are not needed to perform backups, only restores.
+
+Note that more keys will increase S3 storage costs as a file is stored in S3 for each keypair.
+
+### S3 bucket configuration
+
+TODO
+
+### Configuration
+
+TODO
+
+### Running the backup
+
+TODO
+
+### Restoring
+
+TODO
 
 License & Author
 ----------------
