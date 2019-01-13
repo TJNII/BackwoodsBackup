@@ -13,7 +13,7 @@ module BackupEngine
     end
 
     class Manifest
-      VERSION = 1
+      VERSION = 0
 
       attr_accessor :partial
 

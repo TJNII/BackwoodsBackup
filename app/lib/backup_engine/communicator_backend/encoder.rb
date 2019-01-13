@@ -5,7 +5,7 @@ require_relative '../checksums/engine.rb'
 module BackupEngine
   module CommunicatorBackend
     module Encoder
-      VERSION = 1
+      VERSION = 0
       METADATA_CHECKSUM_ALGORITHM = 'sha256'.freeze
 
       class DecodeError < StandardError
