@@ -42,6 +42,7 @@ module BackupEngine
         if key_class != :manifest_only_keys
           @logger.warn('The cleaner only requires manifest private keys')
           @logger.warn('Storing the data keys on the cleaner host is not secure.')
+          @logger.warn('Cleaner config should be unique from backup/restore config as it is global.')
           return {}
         end
 

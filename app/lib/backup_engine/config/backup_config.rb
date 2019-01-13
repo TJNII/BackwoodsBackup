@@ -52,7 +52,7 @@ module BackupEngine
       private
 
       def _parse_encryption_key(name, config, _key_class)
-        if config.key?(:private_key)
+        if config.key?(:private_key) && File.exist?(config.fetch(:private_key))
           @logger.warn('The backup client does not require private encryption keys')
           @logger.warn('Storing the private key on the backup host is not secure.')
         end
