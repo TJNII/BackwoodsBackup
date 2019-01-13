@@ -60,7 +60,7 @@ module BackupEngine
         end
       end
 
-      return used_blocks
+      return used_blocks.uniq
     end
 
     def self._ensure_blocks_consistent(communicator:, logger:)
@@ -118,11 +118,15 @@ module BackupEngine
 
     def self._remove_unused_blocks(communicator:, logger:, used_blocks:, min_block_age:)
       BackupEngine::BlockEncoder.list_blocks(communicator: communicator).each do |block_path|
-        next if used_blocks.include? block_path.to_s
-
         block_age = Time.new - communicator.date(path: block_path)
+
+        if used_blocks.include? block_path.to_s
+          logger.debug("Block #{block_path} (#{block_age} old) in use")
+          next
+        end
+
         if block_age <= min_block_age
-          logger.debug("Block #{block_path} (#{block_age} old) unused but below minimum age")
+          logger.debug("Block #{block_path} (#{block_age} old) unused but below minimum age (#{min_block_age})")
         else
           logger.info("Removing unreferenced block #{block_path} (#{block_age} old)")
           communicator.delete(path: block_path)
