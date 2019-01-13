@@ -29,12 +29,13 @@ describe 'Cleaner: Functional' do
   let(:communicator) { BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: backup_directory }) }
   let(:encryption_keys) do
     {
-      test_key_1: {
-        private: File.read('/app/spec/fixtures/cleaner_fixtures/fixture_generation/config/test1.key.pem')
+      manifest_key_1: {
+        private: File.read('/app/spec/fixtures/cleaner_fixtures/fixture_generation/config/manifest1.key.pem')
       },
-      test_key_2: {
-        private: File.read('/app/spec/fixtures/cleaner_fixtures/fixture_generation/config/test2.key.pem')
+      manifest_key_2: {
+        private: File.read('/app/spec/fixtures/cleaner_fixtures/fixture_generation/config/manifest2.key.pem')
       }
+
     }
   end
 
