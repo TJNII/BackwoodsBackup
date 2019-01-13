@@ -2,6 +2,8 @@ module BackupEngine
   module BlockEncoder
     METADATA_VERSION = 0
 
+    BLOCKS_PATH = Pathname.new('blocks').freeze
+
     class BlockError < StandardError
     end
 
@@ -18,7 +20,8 @@ module BackupEngine
       end
 
       def path
-        Pathname.new("blocks/#{@checksum}/#{@length}")
+        # Use checksum-length instead of checksum/length as it makes cleanup easier (no subdirectories)
+        BLOCKS_PATH.join("#{@checksum}-#{@length}")
       end
 
       def backed_up?
@@ -42,6 +45,10 @@ module BackupEngine
         raise(BlockError, "Block length mismatch: #{@length}:#{length}") if length != @length
         raise(BlockError, "Block Checksum Mismatch: #{@checksum}:#{checksum}") if checksum != @checksum
       end
+    end
+
+    def self.list_blocks(communicator:)
+      communicator.list(path: BLOCKS_PATH)
     end
 
     def self.restore(path:, encryption_engine:)

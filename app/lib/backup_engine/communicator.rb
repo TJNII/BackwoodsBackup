@@ -17,17 +17,29 @@ module BackupEngine
                  end
     end
 
-    def upload(path:, metadata:, payload:)
-      @backend.upload(path: path,
-                      payload: CommunicatorBackend::Encoder.encode(metadata: metadata, payload: payload))
+    def date(path:)
+      @backend.date(path: path)
+    end
+
+    def delete(path:)
+      @backend.delete(path: path)
+    end
+
+    def download(path:)
+      CommunicatorBackend::Encoder.decode(@backend.download(path: path))
     end
 
     def exists?(path:)
       @backend.exists?(path: path)
     end
 
-    def download(path:)
-      CommunicatorBackend::Encoder.decode(@backend.download(path: path))
+    def list(path:)
+      @backend.list(path: path)
+    end
+
+    def upload(path:, metadata:, payload:)
+      @backend.upload(path: path,
+                      payload: CommunicatorBackend::Encoder.encode(metadata: metadata, payload: payload))
     end
   end
 end

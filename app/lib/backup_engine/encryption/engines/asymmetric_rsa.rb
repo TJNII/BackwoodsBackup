@@ -14,6 +14,11 @@ module BackupEngine
       class ASymmetricRSA
         DEFAULT_SYMMETRIC_ALGORITHM = 'AES-256-CBC'.freeze
 
+        BLOCKS_DIR = Pathname.new('ASymmetricRSA').join('asym_blocks').freeze
+        KEYS_DIR = Pathname.new('ASymmetricRSA').join('asym_keys').freeze
+
+        attr_reader :communicator
+
         def initialize(communicator:, keys:, logger:)
           @communicator = communicator
           @logger = logger
@@ -22,7 +27,7 @@ module BackupEngine
           keys.each_pair do |name, rsa_keys|
             # Use the sha256 of the user name as the internal name
             # This is to both avoid naming problems when uploading and to obfuscate the key name
-            keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name)
+            keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name.to_s)
             raise('Key name sha collission') if @keys.key?(keys_key)
 
             @keys[keys_key] = rsa_keys.merge(name: name)
@@ -31,10 +36,91 @@ module BackupEngine
           raise('No encryption keys') if @keys.empty?
         end
 
+        def decrypt(path:)
+          @keys.each_pair do |key_id, key_values|
+            if key_values[:private].nil?
+              @logger.error("No private key for #{key_values[:name]}")
+              next
+            end
+
+            # Roll through the keys until we find one we have
+            next unless @communicator.exists?(path: symmetric_key_path(base_path: path, key_id: key_id))
+
+            communicator_payload = @communicator.download(path: symmetric_key_path(base_path: path, key_id: key_id))
+            raise("Algorithm Mismatch: RSA:#{communicator_payload[:metadata][:encryption][:algorithm]}") if communicator_payload[:metadata][:encryption][:algorithm] != 'RSA'
+
+            private_key_obj = OpenSSL::PKey::RSA.new(key_values[:private])
+            key = private_key_obj.private_decrypt(communicator_payload[:payload])
+            return symmetric_decrypt(key: key, path: communicator_payload[:metadata][:encryption][:target][:path], algorithm: communicator_payload[:metadata][:encryption][:target][:algorithm])
+          end
+
+          raise("Unable to decrypt #{path} with any available RSA keys")
+        end
+
+        def delete(path:)
+          @communicator.delete(path: path)
+        end
+
+        def ensure_consistent(path:)
+          # Iterate over all the keys in path, and ensure they have corresponding blocks
+          # NOTE: This downloads all the key files
+          unless @communicator.exists?(path: path.join(KEYS_DIR))
+            @logger.error("Asymmetric keys directory missing for #{path}")
+            delete(path: path)
+            return false
+          end
+
+          key_paths = @communicator.list(path: path.join(KEYS_DIR))
+          if key_paths.empty?
+            @logger.warn("No keys for #{path}")
+            delete(path: path)
+            return false
+          end
+
+          # TODO: Better handling of unneeded settings
+          symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator, settings: { algorithm: nil, key: nil }, logger: @logger)
+          known_block_paths = []
+          key_paths.each do |key_path|
+            unless @communicator.exists?(path: key_path.join('sym_key.bin'))
+              @logger.error("Symmetric key file missing for #{key_path}")
+              @communicator.delete(path: key_path)
+              next
+            end
+
+            key_payload = @communicator.download(path: key_path.join('sym_key.bin'))
+            if symmetric_engine.ensure_consistent(path: Pathname.new(key_payload[:metadata][:encryption][:target][:path]))
+              @logger.debug("Symmetric block exists for #{key_path}")
+              known_block_paths.push(key_payload[:metadata][:encryption][:target][:path])
+            else
+              @communicator.delete(path: key_path)
+            end
+          end
+
+          known_block_paths.uniq!
+          if known_block_paths.empty?
+            @logger.warn("No blocks for #{path}")
+            delete(path: path)
+            return false
+          end
+
+          # Ensure the blocks are accessible
+          @communicator.list(path: path.join(BLOCKS_DIR)).each do |block_path|
+            next if known_block_paths.include?(block_path.to_s)
+
+            @logger.info("Remove unreferenced symmetric block #{block_path}")
+            @communicator.delete(path: block_path)
+          end
+
+          return true
+        end
+
         def exists?(path:)
           # Only return true if the payload exists for all keys
+          # Note this is lazy and DOES NOT CHECK THAT THE BLOCK EXISTS.
+          # This is for speed/cost/bandwidth: the keyfile would need to be downloaded to get the block ID to check that it exists
+          # Consistency is intended to be enforced by the cleaner script
           @keys.keys.each do |key_id|
-            return false unless @communicator.exists?(path: symmetric_key_path(path, key_id))
+            return false unless @communicator.exists?(path: symmetric_key_path(base_path: path, key_id: key_id))
           end
           return true
         end
@@ -52,7 +138,7 @@ module BackupEngine
             # RSA can't do arbitrary length strings, so only encrypt the key
             encrypted_key = public_key_obj.public_encrypt(symmetric_details[:key])
 
-            @communicator.upload(path: symmetric_key_path(path, key_id),
+            @communicator.upload(path: symmetric_key_path(base_path: path, key_id: key_id),
                                  payload: encrypted_key,
                                  metadata: {
                                    encryption: {
@@ -66,48 +152,31 @@ module BackupEngine
           end
         end
 
-        def decrypt(path:)
-          @keys.each_pair do |key_id, key_values|
-            if key_values[:private].nil?
-              @logger.error("No private key for #{key_values[:name]}")
-              next
-            end
-
-            # Roll through the keys until we find one we have
-            next unless @communicator.exists?(path: symmetric_key_path(path, key_id))
-
-            communicator_payload = @communicator.download(path: symmetric_key_path(path, key_id))
-            raise("Algorithm Mismatch: RSA:#{communicator_payload[:metadata][:encryption][:algorithm]}") if communicator_payload[:metadata][:encryption][:algorithm] != 'RSA'
-
-            private_key_obj = OpenSSL::PKey::RSA.new(key_values[:private])
-            key = private_key_obj.private_decrypt(communicator_payload[:payload])
-            return symmetric_decrypt(key: key, path: communicator_payload[:metadata][:encryption][:target][:path], algorithm: communicator_payload[:metadata][:encryption][:target][:algorithm])
-          end
-
-          raise("Unable to decrypt #{path} with any available RSA keys")
-        end
-
         private
 
-        def symmetric_key_path(base_path, key_id)
-          return base_path.join('asym_keys').join(key_id.to_s).join('sym_key.bin')
+        def block_path(base_path:, key_id:)
+          return base_path.join(BLOCKS_DIR).join(key_id.to_s)
+        end
+
+        def symmetric_key_path(base_path:, key_id:)
+          return base_path.join(KEYS_DIR).join(key_id.to_s).join('sym_key.bin')
         end
 
         def symmetric_encrypt(base_path:, payload:, metadata:)
           key = OpenSSL::Cipher.new(DEFAULT_SYMMETRIC_ALGORITHM).random_key
           key_id = SecureRandom.uuid
-          path = base_path.join('asym_blocks').join(key_id.to_s)
 
           symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator,
                                                                               settings: {
                                                                                 key: key,
                                                                                 algorithm: DEFAULT_SYMMETRIC_ALGORITHM
-                                                                              })
-          symmetric_engine.encrypt(path: path, payload: payload, metadata: metadata)
+                                                                              },
+                                                                              logger: @logger)
+          symmetric_engine.encrypt(path: block_path(base_path: base_path, key_id: key_id), payload: payload, metadata: metadata)
           return {
             key: Base64.encode64(key),
             algorithm: DEFAULT_SYMMETRIC_ALGORITHM,
-            path: path
+            path: block_path(base_path: base_path, key_id: key_id)
           }
         end
 
@@ -116,7 +185,8 @@ module BackupEngine
                                                                               settings: {
                                                                                 key: Base64.decode64(key),
                                                                                 algorithm: algorithm
-                                                                              })
+                                                                              },
+                                                                              logger: @logger)
           symmetric_engine.decrypt(path: Pathname.new(path))
         end
       end

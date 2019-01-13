@@ -7,6 +7,8 @@ require_relative 'compression/engine.rb'
 
 module BackupEngine
   module Manifest
+    MANIFESTS_PATH = Pathname.new('manifests').freeze
+
     class DecodeError < StandardError
     end
 
@@ -24,7 +26,7 @@ module BackupEngine
       end
 
       def path
-        Pathname.new('manifests').join(@backup_host.to_s).join(@set_name.to_s).join(@stamp.to_s)
+        MANIFESTS_PATH.join(@backup_host.to_s).join(@set_name.to_s).join(@stamp.to_s)
       end
 
       def upload(checksum_engine:, encryption_engine:, compression_engine:)
@@ -96,6 +98,22 @@ module BackupEngine
       raise(DecodeError, "Manifest Checksum Mismatch: #{e}")
     rescue BackupEngine::Compression::DecompressionLengthMismatch => e
       raise(DecodeError, "Manifest length mismatch: #{e}")
+    end
+
+    def self.list_manifest_backups(communicator:)
+      list_manifest_sets(communicator: communicator).map do |set_path|
+        communicator.list(path: set_path)
+      end.flatten
+    end
+
+    def self.list_manifest_hosts(communicator:)
+      return communicator.list(path: MANIFESTS_PATH)
+    end
+
+    def self.list_manifest_sets(communicator:)
+      list_manifest_hosts(communicator: communicator).map do |host_path|
+        communicator.list(path: host_path)
+      end.flatten
     end
 
     def self._load_manifest_json(raw_json)

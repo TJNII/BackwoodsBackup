@@ -56,6 +56,11 @@ describe 'Backup Engine: Functional' do
     @backup_engine.upload_manifest
   end
 
+  # This test is to ensure the cleaner doesn't remove things it shouldn't
+  it 'cleans cleanly' do
+    BackupEngine::Cleaner.clean(encryption_engine: @encryption_engine, logger: @logger, min_block_age: 0, min_manifest_age: 3600, min_set_manifests: 128)
+  end
+
   it 'restores without errors' do
     restore_engine = BackupEngine::RestoreClient::Engine.new(encryption_engine: @encryption_engine, logger: @logger)
     restore_engine.restore_manifest(manifest_path: @backup_engine.manifest.path,

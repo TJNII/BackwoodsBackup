@@ -1,0 +1,22 @@
+host: tests
+
+communicator:
+  type: filesystem
+  backend_config:
+    base_path: /fixtures/cleaner_fixtures/cleaner_backup
+
+encryption:
+  type: RSA
+  keys:
+    test_key_2:
+      public_key: /fixtures/cleaner_fixtures/fixture_generation/config/test2.pub.pem
+      private_key: /fixtures/cleaner_fixtures/fixture_generation/config/test2.key.pem
+
+set_name: fixture_2
+docker_host_bind_path: /
+
+paths:
+  - /tmp/fixture_target
+
+tempdirs:
+  8589934592: /ramdisk
