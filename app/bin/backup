@@ -3,9 +3,10 @@
 require 'logger'
 require 'optparse'
 
-require_relative '../lib/backup_engine/docker_bind_pathname.rb'
-require_relative '../lib/backup_engine/config/backup_config.rb'
 require_relative '../lib/backup_engine/backup_client/engine.rb'
+require_relative '../lib/backup_engine/config/backup_config.rb'
+require_relative '../lib/backup_engine/docker_bind_pathname.rb'
+require_relative '../lib/backup_engine/manifest.rb'
 
 def parse_args
   options = {}
@@ -48,7 +49,7 @@ def main
 
   backup_engine = BackupEngine::BackupClient::Engine.new(config.to_engine_hash)
 
-  partial_manifest = true
+  config.manifest.partial = true
   begin
     if options[:path]
       # Overridden paths are partial manifests
@@ -59,11 +60,13 @@ def main
       config.paths.each do |path|
         backup_engine.backup_path(path: BackupEngine::DockerBindPathname.new(bind_path: config.docker_host_bind_path, relative_path: path))
       end
-      partial_manifest = false
+      config.manifest.partial = false
     end
   ensure
-    if (!partial_manifest || options[:partial_manifest]) && !options[:no_manifest]
-      backup_engine.upload_manifest(partial: partial_manifest)
+    if (!config.manifest.partial || options[:partial_manifest]) && !options[:no_manifest]
+      config.manifest.upload(checksum_engine: config.checksum_engine,
+                             encryption_engine: config.manifest_encryption_engine,
+                             compression_engine: config.compression_engine)
     else
       logger.warn('Not uploading manifest')
     end

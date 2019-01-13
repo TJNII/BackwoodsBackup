@@ -6,7 +6,7 @@ module BackupEngine
   module Config
     class BackupConfig < ConfigBase
       attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
-      attr_reader :docker_host_bind_path, :set_name
+      attr_reader :docker_host_bind_path, :set_name, :manifest, :manifest_encryption_engine
 
       def initialize(path:, logger:)
         @logger = logger
@@ -30,6 +30,8 @@ module BackupEngine
 
         _parse_tempdirs_block(config.fetch(:tempdirs, {}))
         @docker_host_bind_path = config.fetch(:docker_host_bind_path, '/host')
+
+        @manifest = BackupEngine::Manifest::Manifest.new(host: @host, set_name: @set_name, logger: @logger)
       rescue KeyError => e
         raise(ParseError, "Error parsing top level configuration: #{e}")
       end
@@ -39,12 +41,11 @@ module BackupEngine
           checksum_engine: @checksum_engine,
           encryption_engine: @encryption_engine,
           compression_engine: @compression_engine,
-          host: @host,
+          manifest: @manifest,
           chunk_size: @chunk_size,
           logger: @logger,
           path_exclusions: @path_exclusions,
-          tempdirs: @tempdirs,
-          set_name: @set_name
+          tempdirs: @tempdirs
         }
       end
 

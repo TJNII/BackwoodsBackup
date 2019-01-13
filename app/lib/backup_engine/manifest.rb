@@ -17,22 +17,23 @@ module BackupEngine
 
       attr_accessor :partial
 
-      def initialize(backup_host:, set_name:)
-        @backup_host = backup_host.freeze
+      def initialize(host:, set_name:, logger:)
+        @host = host.freeze
         @set_name = set_name.freeze
         @stamp = Time.now.to_i.freeze
         @manifest = {}
         @partial = false
+        @logger = logger
       end
 
       def path
-        MANIFESTS_PATH.join(@backup_host.to_s).join(@set_name.to_s).join(@stamp.to_s)
+        MANIFESTS_PATH.join(@host.to_s).join(@set_name.to_s).join(@stamp.to_s)
       end
 
       def upload(checksum_engine:, encryption_engine:, compression_engine:)
         payload = JSON.dump(version: VERSION,
                             stamp: @stamp,
-                            host: @backup_host,
+                            host: @host,
                             partial: @partial,
                             manifest: @manifest)
 
@@ -45,6 +46,11 @@ module BackupEngine
                                     checksum: checksum_engine.block(payload),
                                     compression: compression_result.metadata
                                   })
+        if @partial
+          @logger.warn("Uploaded incomplete manifest to #{path}")
+        else
+          @logger.info("Uploaded manifest to #{path}")
+        end
       end
 
       def create_file_backup_entry(path:, checksum:, stat:, block_map:)

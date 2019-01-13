@@ -10,7 +10,10 @@ encryption:
   keys:
     test_key_2:
       public_key: /fixtures/cleaner_fixtures/fixture_generation/config/test2.pub.pem
-      private_key: /fixtures/cleaner_fixtures/fixture_generation/config/test2.key.pem
+  manifest_only_keys:
+    manifest_key_1:
+      public_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest.pub.pem
+      private_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest.key.pem
 
 set_name: fixture_2
 docker_host_bind_path: /

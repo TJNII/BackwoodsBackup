@@ -1,3 +1,5 @@
+require 'pathname'
+
 module BackupEngine
   module BlockEncoder
     METADATA_VERSION = 0

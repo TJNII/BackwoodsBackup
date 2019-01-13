@@ -2,7 +2,6 @@ require 'tempfile'
 require 'fileutils'
 
 require_relative '../stat.rb'
-require_relative '../manifest.rb'
 require_relative '../block_encoder.rb'
 
 module BackupEngine
@@ -13,9 +12,9 @@ module BackupEngine
     class Engine
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(checksum_engine:, encryption_engine:, compression_engine:, host:, chunk_size:, logger:, set_name:, path_exclusions: [], tempdirs: {})
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, chunk_size:, logger:, manifest:, path_exclusions: [], tempdirs: {})
         @checksum_engine = checksum_engine
-        @manifest = BackupEngine::Manifest::Manifest.new(backup_host: host, set_name: set_name)
+        @manifest = manifest
         @encryption_engine = encryption_engine
         @compression_engine = compression_engine
         @chunk_size = chunk_size
@@ -58,19 +57,6 @@ module BackupEngine
         # TODO: This fails the whole parent path
         @logger.error("Exception backing up #{path}: #{exc}")
         raise exc
-      end
-
-      def upload_manifest(partial: false)
-        @manifest.partial = true if partial
-        @manifest.upload(checksum_engine: @checksum_engine,
-                         encryption_engine: @encryption_engine,
-                         compression_engine: @compression_engine)
-
-        if partial
-          @logger.warn("Uploaded incomplete manifest to #{@manifest.path}")
-        else
-          @logger.info("Uploaded manifest to #{@manifest.path}")
-        end
       end
 
       private

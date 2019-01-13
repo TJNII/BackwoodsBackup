@@ -50,6 +50,8 @@ describe 'Cleaner: Functional' do
 
   describe 'block cleaning' do
     describe 'asymmetric block consistency' do
+      pending 'it warns if the manifest only keys can decrypt data blocks'
+
       it 'removes keys without a corresponding symmetric block' do
         raise("Fixture failure: #{random_block_path_obj} does not have two keys") unless random_block_path_obj.join('ASymmetricRSA').join('asym_keys').children.length == 2
         raise("Fixture failure: #{random_block_path_obj} does not have two blocks") unless random_block_path_obj.join('ASymmetricRSA').join('asym_blocks').children.length == 2

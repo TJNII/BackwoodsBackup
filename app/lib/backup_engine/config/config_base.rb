@@ -20,16 +20,24 @@ module BackupEngine
         # Currently only supporting asymmetric encryption with RSA keys
         raise('Only RSA encryption is supported') if config.fetch(:type) != 'RSA'
 
-        encryption_keys = {}
-        config.fetch(:keys).each_pair do |name, key_config|
-          encryption_keys[name] = _parse_encryption_key(name, key_config.symbolize_keys)
-        end
-
         @encryption_engine = BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: @communicator,
-                                                                                  keys: encryption_keys,
+                                                                                  keys: _process_encryption_keys(config.fetch(:keys)),
                                                                                   logger: @logger)
+
+        @manifest_encryption_engine = BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: @communicator,
+                                                                                           keys: _process_encryption_keys(config.fetch(:keys).merge(config.fetch(:manifest_only_keys))),
+                                                                                           logger: @logger)
       rescue KeyError => e
         raise(ParseError, "Error parsing encryption block: #{e}")
+      end
+
+      def _process_encryption_keys(keys)
+        encryption_keys = {}
+        keys.each_pair do |name, key_config|
+          # _parse_encryption_key is defined by the client class
+          encryption_keys[name] = _parse_encryption_key(name, key_config.symbolize_keys)
+        end
+        encryption_keys
       end
     end
   end

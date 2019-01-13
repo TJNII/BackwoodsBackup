@@ -3,12 +3,13 @@ require 'logger'
 
 require_relative '../spec_helper.rb'
 
-require_relative '../../lib/backup_engine/communicator.rb'
-require_relative '../../lib/backup_engine/docker_bind_pathname.rb'
-require_relative '../../lib/backup_engine/checksums/engine.rb'
-require_relative '../../lib/backup_engine/compression/engine.rb'
-require_relative '../../lib/backup_engine/encryption/engine.rb'
 require_relative '../../lib/backup_engine/backup_client/engine.rb'
+require_relative '../../lib/backup_engine/checksums/engine.rb'
+require_relative '../../lib/backup_engine/communicator.rb'
+require_relative '../../lib/backup_engine/compression/engine.rb'
+require_relative '../../lib/backup_engine/docker_bind_pathname.rb'
+require_relative '../../lib/backup_engine/encryption/engine.rb'
+require_relative '../../lib/backup_engine/manifest.rb'
 require_relative '../../lib/backup_engine/restore_client/engine.rb'
 
 # This is intended to be run in a Docker container.
@@ -34,16 +35,16 @@ describe 'Backup Engine: Functional' do
 
     @checksum_engine = BackupEngine::Checksums::Engines::SHA256.new
     @compression_engine = BackupEngine::Compression::Engines::Zlib.new
+    @manifest = BackupEngine::Manifest::Manifest.new(host: 'testhost', set_name: 'functional_test', logger: @logger)
 
     @backup_engine = BackupEngine::BackupClient::Engine.new(checksum_engine: @checksum_engine,
                                                             encryption_engine: @encryption_engine,
                                                             compression_engine: @compression_engine,
-                                                            host: 'testhost',
+                                                            manifest: @manifest,
                                                             chunk_size: (512 * 1024), # Test with a small block size
                                                             logger: @logger,
                                                             path_exclusions: excluded_paths.map { |path| "^#{path}" },
-                                                            tempdirs: { (1024**3) => '/ramdisk' },
-                                                            set_name: 'functional_test')
+                                                            tempdirs: { (1024**3) => '/ramdisk' })
   end
 
   target_paths.each do |path|
@@ -53,7 +54,9 @@ describe 'Backup Engine: Functional' do
   end
 
   it 'saves the manifest' do
-    @backup_engine.upload_manifest
+    @manifest.upload(checksum_engine: @checksum_engine,
+                     encryption_engine: @encryption_engine,
+                     compression_engine: @compression_engine)
   end
 
   # This test is to ensure the cleaner doesn't remove things it shouldn't
