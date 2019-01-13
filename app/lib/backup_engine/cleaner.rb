@@ -85,11 +85,10 @@ module BackupEngine
 
       @logger.warn("Multiple encryption methods in use for block #{path}") if block_types.length > 1
       block_types.map(&:to_s).each do |block_type|
-        # TODO: Better handling of unneeded settings for these operations
         encryption_engine = if block_type == 'ASymmetricRSA'
-                              BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: communicator, keys: { dummykey: {} }, logger: logger)
+                              BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: communicator, logger: logger)
                             elsif block_type == 'Symmetric'
-                              BackupEngine::Encryption::Engines::Symmetric.new(communicator: communicator, settings: { algorithm: nil, key: nil }, logger: logger)
+                              BackupEngine::Encryption::Engines::Symmetric.new(communicator: communicator, logger: logger)
                             else
                               raise("Unknown encryption engine #{block_type} for path #{block_path}")
                             end

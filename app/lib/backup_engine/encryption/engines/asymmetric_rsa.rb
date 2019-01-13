@@ -19,25 +19,14 @@ module BackupEngine
 
         attr_reader :communicator
 
-        def initialize(communicator:, keys:, logger:)
+        def initialize(communicator:, logger:, keys: {})
           @communicator = communicator
           @logger = logger
-
-          @keys = {}
-          keys.each_pair do |name, rsa_keys|
-            # Use the sha256 of the user name as the internal name
-            # This is to both avoid naming problems when uploading and to obfuscate the key name
-            keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name.to_s)
-            raise('Key name sha collission') if @keys.key?(keys_key)
-
-            @keys[keys_key] = rsa_keys.merge(name: name)
-          end
-
-          raise('No encryption keys') if @keys.empty?
+          @user_keys = keys.freeze
         end
 
         def decrypt(path:)
-          @keys.each_pair do |key_id, key_values|
+          keys.each_pair do |key_id, key_values|
             if key_values[:private].nil?
               @logger.error("No private key for #{key_values[:name]}")
               next
@@ -77,8 +66,7 @@ module BackupEngine
             return false
           end
 
-          # TODO: Better handling of unneeded settings
-          symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator, settings: { algorithm: nil, key: nil }, logger: @logger)
+          symmetric_engine = BackupEngine::Encryption::Engines::Symmetric.new(communicator: @communicator, logger: @logger)
           known_block_paths = []
           key_paths.each do |key_path|
             unless @communicator.exists?(path: key_path.join('sym_key.bin'))
@@ -119,7 +107,7 @@ module BackupEngine
           # Note this is lazy and DOES NOT CHECK THAT THE BLOCK EXISTS.
           # This is for speed/cost/bandwidth: the keyfile would need to be downloaded to get the block ID to check that it exists
           # Consistency is intended to be enforced by the cleaner script
-          @keys.keys.each do |key_id|
+          keys.keys.each do |key_id|
             return false unless @communicator.exists?(path: symmetric_key_path(base_path: path, key_id: key_id))
           end
           return true
@@ -131,7 +119,7 @@ module BackupEngine
           # Orphaned blocks are intended to be cleaned up by a cleaner tool.
           symmetric_details = symmetric_encrypt(base_path: path, payload: payload, metadata: metadata)
 
-          @keys.each_pair do |key_id, key_values|
+          keys.each_pair do |key_id, key_values|
             raise("No public key for #{key_values[:name]}") if key_values[:public].nil?
 
             public_key_obj = OpenSSL::PKey::RSA.new(key_values[:public])
@@ -150,6 +138,29 @@ module BackupEngine
                                    }
                                  })
           end
+        end
+
+        # This is an intermediary step to process and check the keys only when they are needed.
+        # It processes them into the needed internal format and saves them in a "verified" variable
+        # that can be used by the methods that need them.
+        # The spirit of this method is to allow the keys to be optional in the constructor as
+        # the encrypt/decrypt methods require the settings but the cleaner methods do not
+        # (and the settings are unknown to the code simply performing a clean.)
+        def keys
+          @keys unless @keys.nil?
+          @keys = {}
+          @user_keys.each_pair do |name, rsa_keys|
+            # Use the sha256 of the user name as the internal name
+            # This is to both avoid naming problems when uploading and to obfuscate the key name
+            keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name.to_s)
+            raise('Key name sha collission') if @keys.key?(keys_key)
+
+            @keys[keys_key] = rsa_keys.merge(name: name)
+          end
+
+          raise('No encryption keys') if @keys.empty?
+
+          return @keys
         end
 
         private
