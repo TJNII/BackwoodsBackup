@@ -23,6 +23,32 @@ An identical block of data in multiple files or on multiple hosts, when encrypte
 Data is encrypted using RSA/AES encryption client side.
 The private key is not used for backups and can be safely stored offline.
 
+Backup Methodology
+------------------
+
+- Iterate over the provided path
+  - If a file:
+    - Checksum the file
+    - Copy the file to tmpfile space.  This is done to avoid file modified during backup errors during the slower read/checksum block/encrypt block/upload operations.
+    - Checksum the copy to ensure it hasn't changed
+    - Read the file in blocks
+    - Checksum the block
+    - Use the checksum and length to see if the block already exists in the store.  If it does not:
+      - Compress the block
+      - Encrypt the block
+      - Upload the block
+  - Save information on the file/directory/symlink to the manifest
+- Upload the manifest
+
+This app is written to fail quickly on errors under the assumption that it's better to fail obviously than create an incomplete backup.
+By default the manifest is not saved on errors.
+This means that, by default, if a backup fails then the files backed up cannot be reconstructed.
+This can be toggled at the backup tool command line.
+
+**Files are not restorable without a manifest.**
+The manifest saves the file names, checksums, and block mapping which is required to reconstruct files.
+Without the block mapping files cannot be reconstructed.
+
 Configuration & Usage
 ---------------------
 
@@ -42,7 +68,7 @@ Note this creates a keypair with no password.
 Data encryption keys are *strongly* recommended to be stored offline.
 Private keys are not needed to perform backups, only restores.
 
-Note that more keys will increase S3 storage costs as a file is stored in S3 for each keypair.
+Note that more keys will increase S3 storage costs as a small file is stored in S3 for each keypair.
 
 ### S3 bucket configuration
 
@@ -59,6 +85,13 @@ TODO
 ### Restoring
 
 TODO
+
+## Cleaning
+
+Cleaning entails removing old manifests and unused blocks.
+The cleaner is what enforces backup retentions.
+
+TODO: Instructions
 
 License & Author
 ----------------
