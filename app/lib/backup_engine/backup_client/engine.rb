@@ -88,7 +88,7 @@ module BackupEngine
               @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes using existing block")
             else
               result = block.back_up(compression_engine: @compression_engine)
-              @logger.debug("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{result[:compression_percent]}%")
+              @logger.info("#{path} @#{offset}: Backed up #{block.length}/#{stat.size} bytes as new block.  Compressed #{result[:compression_percent]}%")
             end
 
             block_map.push(offset: offset, path: block.path)
