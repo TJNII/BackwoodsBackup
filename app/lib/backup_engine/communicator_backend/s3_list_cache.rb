@@ -5,6 +5,8 @@ module BackupEngine
     class S3ListCacheError < StandardError
     end
 
+    # Raise Errno::ENOENT on unknown keys to match Pathname .children errors
+
     class S3ListCache
       attr_reader :date
 
@@ -74,12 +76,12 @@ module BackupEngine
           return @cache.keys
         end
 
-        raise(S3ListCacheError, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
+        raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
 
         begin
           return @cache[path_array[0]].children_by_array(path_array: path_array[1..-1])
-        rescue S3ListCacheError
-          raise(S3ListCacheError, "Unknown path #{path_array.join('/')}")
+        rescue Errno::ENOENT
+          raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}")
         end
       end
 
@@ -93,12 +95,12 @@ module BackupEngine
           return
         end
 
-        raise(S3ListCacheError, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
+        raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
 
         begin
           @cache[path_array[0]].delete_by_array(path_array: path_array[1..-1])
-        rescue S3ListCacheError
-          raise(S3ListCacheError, "Unknown path #{path_array.join('/')}")
+        rescue Errno::ENOENT
+          raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}")
         end
 
         # As S3 doesn't have directories the parent will no longer exist if the child is empty
@@ -122,8 +124,6 @@ module BackupEngine
         return unless @cache.key? path_array[0]
 
         @cache[path_array[0]].mark_complete_by_array(path_array: path_array[1..-1])
-      rescue S3ListCacheError
-        raise(S3ListCacheError, "Unknown path #{path_array.join('/')}")
       end
 
       private

@@ -101,7 +101,7 @@ describe 'Backup Engine: unit' do
 
       it 'raises exception unknown key' do
         test_class.mark_complete_by_array(path_array: [])
-        expect { test_class.children_by_array(path_array: %w[unknown key]) }.to raise_exception(BackupEngine::CommunicatorBackend::S3ListCacheError)
+        expect { test_class.children_by_array(path_array: %w[unknown key]) }.to raise_exception(Errno::ENOENT)
       end
 
       it 'returns nested child lists' do
@@ -180,7 +180,7 @@ describe 'Backup Engine: unit' do
       end
 
       it 'raises exception unknown key' do
-        expect { test_class.delete_by_array(path_array: %w[unknown key]) }.to raise_exception(BackupEngine::CommunicatorBackend::S3ListCacheError)
+        expect { test_class.delete_by_array(path_array: %w[unknown key]) }.to raise_exception(Errno::ENOENT)
       end
 
       it 'recursively deletes child lists and empty parents' do

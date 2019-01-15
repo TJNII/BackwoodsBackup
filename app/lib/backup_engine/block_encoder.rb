@@ -51,6 +51,8 @@ module BackupEngine
 
     def self.list_blocks(communicator:)
       communicator.list(path: BLOCKS_PATH)
+    rescue Errno::ENOENT
+      return []
     end
 
     def self.restore(path:, encryption_engine:)

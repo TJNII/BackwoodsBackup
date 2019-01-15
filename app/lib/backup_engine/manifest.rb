@@ -110,16 +110,22 @@ module BackupEngine
       list_manifest_sets(communicator: communicator).map do |set_path|
         communicator.list(path: set_path)
       end.flatten
+    rescue Errno::ENOENT
+      return []
     end
 
     def self.list_manifest_hosts(communicator:)
       return communicator.list(path: MANIFESTS_PATH)
+    rescue Errno::ENOENT
+      return []
     end
 
     def self.list_manifest_sets(communicator:)
       list_manifest_hosts(communicator: communicator).map do |host_path|
         communicator.list(path: host_path)
       end.flatten
+    rescue Errno::ENOENT
+      return []
     end
 
     def self._load_manifest_json(raw_json)
