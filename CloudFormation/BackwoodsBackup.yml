@@ -1,0 +1,62 @@
+Description: >
+  This templates configures a S3 target bucket for https://github.com/TJNII/BackwoodsBackup
+  as well as IAM users for backups, restores, and cleans.
+
+Resources:
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: "True"
+        BlockPublicPolicy: "True"
+        IgnorePublicAcls: "True"
+        RestrictPublicBuckets: "True"
+
+  BackupIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: !Sub "BackwoodsBackup-Backup-${AWS::StackName}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - s3:ListBucket
+                  - s3:PutObject
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:s3:::${BackupBucket}
+                  - !Sub arn:aws:s3:::${BackupBucket}/*
+
+  RestoreIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: !Sub "BackwoodsBackup-Backup-${AWS::StackName}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:s3:::${BackupBucket}
+                  - !Sub arn:aws:s3:::${BackupBucket}/*
+
+  CleanIAMUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: !Sub "BackwoodsBackup-Backup-${AWS::StackName}"
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - s3:ListBucket
+                  - s3:GetObject
+                  - s3:DeleteObject
+                Effect: Allow
+                Resource:
+                  - !Sub arn:aws:s3:::${BackupBucket}
+                  - !Sub arn:aws:s3:::${BackupBucket}/*
