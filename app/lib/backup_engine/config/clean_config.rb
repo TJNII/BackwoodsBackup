@@ -5,17 +5,10 @@ module BackupEngine
     class CleanConfig < ConfigBase
       attr_reader :logger, :manifest_encryption_engine, :min_block_age, :min_manifest_age, :min_set_manifests
 
-      def initialize(path:, logger:)
-        @logger = logger
-
-        config = YAML.load_file(path).symbolize_keys
-
-        # Mandatory blocks
-        _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
-        _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
-        _parse_cleaner_block(config.fetch(:cleaner).symbolize_keys)
-      rescue KeyError => e
-        raise(ParseError, "Error parsing top level configuration: #{e}")
+      def initialize(kwargs)
+        super(kwargs) do |config|
+          _parse_cleaner_block(config.fetch(:cleaner).symbolize_keys)
+        end
       end
 
       def to_engine_hash

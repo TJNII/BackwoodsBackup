@@ -10,6 +10,19 @@ module BackupEngine
     end
 
     class ConfigBase
+      def initialize(path:, logger:)
+        @logger = logger
+
+        config = YAML.load_file(path).symbolize_keys
+
+        _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
+        _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
+
+        yield(config) if block_given?
+      rescue KeyError => e
+        raise(ParseError, "Error parsing top level configuration: #{e}")
+      end
+
       private
 
       def _parse_communicator_block(config)

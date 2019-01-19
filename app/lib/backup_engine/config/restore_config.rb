@@ -5,18 +5,6 @@ module BackupEngine
     class RestoreConfig < ConfigBase
       attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size
 
-      def initialize(path:, logger:)
-        @logger = logger
-
-        config = YAML.load_file(path).symbolize_keys
-
-        # Mandatory blocks
-        _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
-        _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
-      rescue KeyError => e
-        raise(ParseError, "Error parsing top level configuration: #{e}")
-      end
-
       def to_engine_hash
         return {
           encryption_engine: @encryption_engine,

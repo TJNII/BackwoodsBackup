@@ -8,32 +8,26 @@ module BackupEngine
       attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
       attr_reader :docker_host_bind_path, :set_name, :manifest, :manifest_encryption_engine
 
-      def initialize(path:, logger:)
-        @logger = logger
+      def initialize(kwargs)
+        super(kwargs) do |config|
+          # Mandatory blocks
+          @paths = config.fetch(:paths)
+          @host = config.fetch(:host)
+          @set_name = config.fetch(:set_name)
 
-        config = YAML.load_file(path).symbolize_keys
+          # Optional blocks
+          @checksum_engine = BackupEngine::Checksums::Engine.init_engine(algorithm: config.fetch(:checksum_algorithm, 'sha256'))
+          @compression_engine = BackupEngine::Compression::Engine.init_engine(algorithm: config.fetch(:compression_algorithm, 'zlib'))
+          @path_exclusions = config.fetch(:path_exclusions, [])
 
-        # Mandatory blocks
-        _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
-        _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
-        @paths = config.fetch(:paths)
-        @host = config.fetch(:host)
-        @set_name = config.fetch(:set_name)
+          @chunk_size = config.fetch(:chunk_size, (20 * 1024 * 1024))
+          @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
 
-        # Optional blocks
-        @checksum_engine = BackupEngine::Checksums::Engine.init_engine(algorithm: config.fetch(:checksum_algorithm, 'sha256'))
-        @compression_engine = BackupEngine::Compression::Engine.init_engine(algorithm: config.fetch(:compression_algorithm, 'zlib'))
-        @path_exclusions = config.fetch(:path_exclusions, [])
+          _parse_tempdirs_block(config.fetch(:tempdirs, {}))
+          @docker_host_bind_path = config.fetch(:docker_host_bind_path, '/host')
 
-        @chunk_size = config.fetch(:chunk_size, (20 * 1024 * 1024))
-        @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
-
-        _parse_tempdirs_block(config.fetch(:tempdirs, {}))
-        @docker_host_bind_path = config.fetch(:docker_host_bind_path, '/host')
-
-        @manifest = BackupEngine::Manifest::Manifest.new(host: @host, set_name: @set_name, logger: @logger)
-      rescue KeyError => e
-        raise(ParseError, "Error parsing top level configuration: #{e}")
+          @manifest = BackupEngine::Manifest::Manifest.new(host: @host, set_name: @set_name, logger: @logger)
+        end
       end
 
       def to_engine_hash
