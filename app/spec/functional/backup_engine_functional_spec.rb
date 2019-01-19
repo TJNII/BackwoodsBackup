@@ -5,6 +5,7 @@ require_relative '../spec_helper.rb'
 
 require_relative '../../lib/backup_engine/backup_client/engine.rb'
 require_relative '../../lib/backup_engine/checksums/engine.rb'
+require_relative '../../lib/backup_engine/cleaner.rb'
 require_relative '../../lib/backup_engine/communicator.rb'
 require_relative '../../lib/backup_engine/compression/engine.rb'
 require_relative '../../lib/backup_engine/docker_bind_pathname.rb'
@@ -14,7 +15,7 @@ require_relative '../../lib/backup_engine/restore_client/engine.rb'
 
 # This is intended to be run in a Docker container.
 describe 'Backup Engine: Functional' do
-  excluded_paths = %w[/proc /sys /dev /tmp].freeze
+  excluded_paths = %w[/proc /sys /dev /tmp /ramdisk].freeze
   target_paths = Pathname.new('/').children.sort.freeze
 
   before :all do
@@ -81,56 +82,70 @@ describe 'Backup Engine: Functional' do
 
     # Intentionally not using Ruby File methods in order to test differently than the implementation,
     describe "#{path} permissions" do
-      files = `find #{path}`.force_encoding('ASCII-8BIT').split("\n").map { |file| file.sub(%r{^/}, '') }
+      perm_files_fd = Tempfile.new
+      # Write the find directly into the subshell file to avoid problems with Ruby encoding
+      `find #{path} | sed -e 's|^/||' > #{perm_files_fd.path}`
+      raise('Failed to find files for permissions test') if $CHILD_STATUS != 0
+
+      perm_files = File.read(perm_files_fd).force_encoding('ASCII-8BIT').split("\n")
+      perm_files_fd.close
+
       before :all do
         # Stat all the files in one shell to avoid the cost of a subshell for each file
-        files_fd = Tempfile.new
-        files_fd.write(files.join("\n"))
-        files_fd.close
-
         @perm_output = Hash.new { |h, k| h[k] = Hash.new }.tap do |hash|
-          { src: '/tmp/test_restore', dst: '/' }.each_pair do |key, tgt_path|
-            raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do ls -nd --time-style=+ "${file}"; done`.force_encoding('ASCII-8BIT')
+          { src: '/', dst: '/tmp/test_restore' }.each_pair do |key, tgt_path|
+            raw = `cd #{tgt_path}; set -e; cat #{perm_files_fd.path} | while read file; do ls -nd --time-style=+ "${file}"; done`.force_encoding('ASCII-8BIT')
             raise("Failed to gather #{key} stats in #{tgt_path}") if $CHILD_STATUS != 0
 
             raw.split("\n").each do |line|
-              parsed_line = line.split.select.with_index { |_, i| [0, 2, 3, 5].include? i }
-              hash[parsed_line.delete_at(3)][key] = parsed_line
+              split_line = line.split
+              path = /(.*?)( ->.*)?$/.match(split_line[5..-1].join(' '))[1]
+
+              hash[path][key] = split_line.reject.with_index { |_, i| [1, 4].include? i }
             end
           end
         end
       end
 
-      files.each do |file|
+      perm_files.sort.each do |file|
         it "are correct for #{file}" do
-          expect(@perm_output[file][:dst]).to eql(@perm_output[file][:src])
+          expect(@perm_output.fetch(file).fetch(:src).length).to be >= 3
+          expect(@perm_output.fetch(file).fetch(:dst).length).to be >= 3
+          expect(@perm_output.fetch(file).fetch(:dst)).to eql(@perm_output.fetch(file).fetch(:src))
         end
       end
+    end
 
-      describe "#{path} contents" do
-        files = `find #{path} -type f`.force_encoding('ASCII-8BIT').split("\n").map { |file| file.sub(%r{^/}, '') }
-        before :all do
-          # Stat all the files in one shell to avoid the cost of a subshell for each file
-          files_fd = Tempfile.new
-          files_fd.write(files.join("\n"))
-          files_fd.close
+    describe "#{path} contents" do
+      cont_files_fd = Tempfile.new
+      # Write the find directly into the subshell file to avoid problems with Ruby encoding
+      # Note different find: -f flag
+      `find #{path} -type f | sed -e 's|^/||' > #{cont_files_fd.path}`
+      raise('Failed to find files for contents test') if $CHILD_STATUS != 0
 
-          @cont_output = Hash.new { |h, k| h[k] = Hash.new }.tap do |hash|
-            { src: '/tmp/test_restore', dst: '/' }.each_pair do |key, tgt_path|
-              raw = `cd #{tgt_path}; set -e; cat #{files_fd.path} | while read file; do echo "$(ls "${file}" -d):$(cat "${file}" | wc -c):$(sha512sum "${file}")"; done`.force_encoding('ASCII-8BIT')
-              raise("Failed to check #{key} contents #{tgt_path}") if $CHILD_STATUS != 0
+      cont_files = File.read(cont_files_fd).force_encoding('ASCII-8BIT').split("\n")
+      cont_files_fd.close
 
-              raw.split("\n").map { |line| line.split(':') }.each do |line|
-                hash[line.delete_at(0)][key] = line
-              end
+      before :all do
+        @cont_output = Hash.new { |h, k| h[k] = Hash.new }.tap do |hash|
+          { src: '/', dst: '/tmp/test_restore' }.each_pair do |key, tgt_path|
+            raw = `cd #{tgt_path}; set -e; cat #{cont_files_fd.path} | while read file; do echo "${file}_:_$(cat "${file}" | wc -c)_:_$(sha512sum "${file}")"; done`.force_encoding('ASCII-8BIT')
+            raise("Failed to check #{key} contents #{tgt_path}") if $CHILD_STATUS != 0
+
+            raw.split("\n").map { |line| line.split('_:_') }.each do |line|
+              raise("Delimiter collision in '#{line}'") if line.length > 3
+
+              hash[line.delete_at(0)][key] = line
             end
           end
         end
+      end
 
-        files.each do |file|
-          it "are the same for #{file}" do
-            expect(@cont_output[file][:dst]).to eql(@cont_output[file][:src])
-          end
+      cont_files.sort.each do |file|
+        it "are the same for #{file}" do
+          expect(@cont_output.fetch(file).fetch(:src).length).to eq 2
+          expect(@cont_output.fetch(file).fetch(:dst).length).to eq 2
+          expect(@cont_output.fetch(file).fetch(:dst)).to eql(@cont_output.fetch(file).fetch(:src))
         end
       end
     end
