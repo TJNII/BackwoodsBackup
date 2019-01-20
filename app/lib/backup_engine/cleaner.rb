@@ -38,13 +38,15 @@ module BackupEngine
 
     # Note: This loads all the manifests
     def self._clean_manifests_and_return_blocks(encryption_engine:, logger:, min_manifest_age:, min_set_manifests:)
-      used_blocks = []
+      # Using a hash instead of an array for speed
+      # Looking up a key in a hash is faster than searching an array.
+      used_blocks = {}
       BackupEngine::Manifest.list_manifest_sets(communicator: encryption_engine.communicator).each do |set_path|
         target_manifests = {}
         encryption_engine.communicator.list(path: set_path).each do |manifest_path|
           age = Time.new - encryption_engine.communicator.date(path: manifest_path)
           if age < min_manifest_age
-            used_blocks += _get_manifest_blocks(path: manifest_path, encryption_engine: encryption_engine, logger: logger)
+            used_blocks.merge!(_get_manifest_blocks(path: manifest_path, encryption_engine: encryption_engine, logger: logger))
           else
             target_manifests[manifest_path] = age
           end
@@ -55,12 +57,12 @@ module BackupEngine
             logger.info("Removing old manifest #{path} (#{target_manifests[path]} old)")
             encryption_engine.communicator.delete(path: path)
           else
-            used_blocks += _get_manifest_blocks(path: path, encryption_engine: encryption_engine, logger: logger)
+            used_blocks.merge!(_get_manifest_blocks(path: path, encryption_engine: encryption_engine, logger: logger))
           end
         end
       end
 
-      return used_blocks.uniq
+      return used_blocks
     end
 
     def self._ensure_blocks_consistent(communicator:, logger:)
@@ -99,14 +101,14 @@ module BackupEngine
 
     # TODO: This knows too much about the format
     def self._get_manifest_blocks(path:, encryption_engine:, logger:)
-      used_blocks = []
+      used_blocks = {}
       manifest = BackupEngine::Manifest.download(path: path, encryption_engine: encryption_engine)
       manifest.manifest.values.each do |metadata|
         next unless metadata.type == 'file'
 
         metadata.block_map.each do |block_metadata|
           if encryption_engine.communicator.exists?(path: block_metadata['path'])
-            used_blocks.push(block_metadata['path'])
+            used_blocks[block_metadata['path']] = nil
           else
             logger.error("Manifest #{path} incomplete: Block #{block_metadata['path']} missing!")
           end
@@ -120,7 +122,7 @@ module BackupEngine
       BackupEngine::BlockEncoder.list_blocks(communicator: communicator).each do |block_path|
         block_age = Time.new - communicator.date(path: block_path)
 
-        if used_blocks.include? block_path.to_s
+        if used_blocks.key?(block_path.to_s)
           logger.debug("Block #{block_path} (#{block_age} old) in use")
           next
         end
