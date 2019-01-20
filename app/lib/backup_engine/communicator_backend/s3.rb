@@ -9,7 +9,7 @@ module BackupEngine
     end
 
     class S3
-      def initialize(bucket:, s3_client_config:, storage_class: 'STANDARD_IA')
+      def initialize(bucket:, s3_client_config:, storage_class: 'STANDARD_IA', full_cache_seed: false)
         @bucket = bucket.freeze
         @storage_class = storage_class.freeze
 
@@ -21,6 +21,11 @@ module BackupEngine
         @s3 = Aws::S3::Client.new(s3_client_config.symbolize_keys)
 
         @cache = S3ListCache.new(initial_date: Time.new(0))
+
+        # Cost/time optimization.  When full_cache_seed is true list the entire bucket and store it in the cache.
+        # For backups where the [number of target files] > ([files in bucket] / 1000) this is faster and more cost-effective.
+        # For small backups this will be slower and may cost more.
+        _s3_list(path: Pathname.new('.')) if full_cache_seed
       end
 
       def date(path:)
