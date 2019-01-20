@@ -2,6 +2,7 @@ source 'https://rubygems.org'
 
 gem 'aws-sdk-s3', '~> 1.0'
 gem 'bindata', '~> 2.4'
+gem 'concurrent-ruby', '~> 1.1'
 gem 'openssl', '~> 2.1'
 gem 'powerpack', '~> 0.1'
 gem 'yaml_extend', '~> 0.2'
