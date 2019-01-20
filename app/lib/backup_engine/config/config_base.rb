@@ -1,4 +1,4 @@
-require 'yaml'
+require 'yaml_extend'
 require 'powerpack/hash'
 
 require_relative '../communicator.rb'
@@ -13,7 +13,7 @@ module BackupEngine
       def initialize(path:, logger:)
         @logger = logger
 
-        config = YAML.load_file(path).symbolize_keys
+        config = YAML.ext_load_file(path).symbolize_keys
 
         _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
         _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
