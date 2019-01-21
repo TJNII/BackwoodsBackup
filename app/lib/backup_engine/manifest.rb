@@ -17,13 +17,16 @@ module BackupEngine
 
       attr_accessor :partial
 
-      def initialize(host:, set_name:, logger:)
+      def initialize(host:, set_name:, logger:, metadata_config: nil)
         @host = host.freeze
         @set_name = set_name.freeze
         @stamp = Time.now.to_i.freeze
         @manifest = {}
         @partial = false
         @logger = logger
+
+        # Config stored in the metadata, such as excluded paths
+        @metadata_config = metadata_config
       end
 
       def path
@@ -35,6 +38,7 @@ module BackupEngine
                             stamp: @stamp,
                             host: @host,
                             partial: @partial,
+                            config: @metadata_config,
                             manifest: @manifest)
 
         compression_result = compression_engine.compress(payload)

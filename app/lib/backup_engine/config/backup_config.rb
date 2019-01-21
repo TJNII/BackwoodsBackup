@@ -26,7 +26,14 @@ module BackupEngine
           _parse_tempdirs_block(config.fetch(:tempdirs, {}))
           @docker_host_bind_path = config.fetch(:docker_host_bind_path, '/host')
 
-          @manifest = BackupEngine::Manifest::Manifest.new(host: @host, set_name: @set_name, logger: @logger)
+          @manifest = BackupEngine::Manifest::Manifest.new(host: @host,
+                                                           set_name: @set_name,
+                                                           logger: @logger,
+                                                           metadata_config: {
+                                                             # Not saving communicator details: Needed to read the manifest
+                                                             # Not saving encryption key names: Needed to read the manifest
+                                                             path_exclusions: @path_exclusions
+                                                           })
         end
       end
 
