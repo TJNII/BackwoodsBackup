@@ -60,3 +60,8 @@ Resources:
                 Resource:
                   - !Sub arn:aws:s3:::${BackupBucket}
                   - !Sub arn:aws:s3:::${BackupBucket}/*
+
+Outputs:
+  BucketName:
+    Description: Backup Bucket Name
+    Value: !Ref BackupBucket
