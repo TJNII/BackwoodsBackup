@@ -25,7 +25,7 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /mnt/backups:/backups -v /etc/backwoods_backup:/config:ro -v /:/host:ro --tmpfs /ramdisk [TODO: PUBLIC CONTAINER] backup -f /config/backup_config.yml
+docker run --rm -ti -v /mnt/backups:/backups -v /etc/backwoods_backup:/config:ro -v /:/host:ro --tmpfs /ramdisk tjnii/backwoods-backup:latest backup -f /config/backup_config.yml
 ```
 
 ### S3 communicator Backups
@@ -35,7 +35,7 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /:/host:ro --tmpfs /ramdisk [TODO: PUBLIC CONTAINER] backup -f /config/backup_config.yml
+docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /:/host:ro --tmpfs /ramdisk tjnii/backwoods-backup:latest backup -f /config/backup_config.yml
 ```
 
 Cleaner
@@ -54,7 +54,7 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /mnt/backups:/backups -v /etc/backwoods_backup:/config:ro [TODO: PUBLIC CONTAINER] clean -f /config/cleaner_config.yml
+docker run --rm -ti -v /mnt/backups:/backups -v /etc/backwoods_backup:/config:ro tjnii/backwoods-backup:latest clean -f /config/cleaner_config.yml
 ```
 
 ### S3 communicator clean
@@ -65,7 +65,7 @@ This needs to be run in EC2 for both speed and cost.
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /etc/backwoods_backup:/config:ro [TODO: PUBLIC CONTAINER] clean -f /config/cleaner_config.yml
+docker run --rm -ti -v /etc/backwoods_backup:/config:ro tjnii/backwoods-backup:latest clean -f /config/cleaner_config.yml
 ```
 
 Restore
@@ -89,7 +89,7 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /mnt/backups:/backups:ro -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore [TODO: PUBLIC CONTAINER] -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
+docker run --rm -ti -v /mnt/backups:/backups:ro -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
 ```
 
 ### S3 communicator restore
@@ -102,5 +102,5 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore [TODO: PUBLIC CONTAINER] -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
+docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
 ```

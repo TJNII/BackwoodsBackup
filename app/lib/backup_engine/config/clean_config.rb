@@ -3,7 +3,7 @@ require_relative 'config_base.rb'
 module BackupEngine
   module Config
     class CleanConfig < ConfigBase
-      attr_reader :logger, :manifest_encryption_engine, :min_block_age, :min_manifest_age, :min_set_manifests
+      attr_reader :min_block_age, :min_manifest_age, :min_set_manifests
 
       def initialize(kwargs)
         super(kwargs) do |config|

@@ -5,8 +5,8 @@ require_relative '../compression/engine.rb'
 module BackupEngine
   module Config
     class BackupConfig < ConfigBase
-      attr_reader :logger, :communicator, :encryption_engine, :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
-      attr_reader :docker_host_bind_path, :set_name, :manifest, :manifest_encryption_engine
+      attr_reader :paths, :host, :checksum_engine, :compression_engine, :path_exclusions, :chunk_size, :tempdirs
+      attr_reader :docker_host_bind_path, :set_name, :manifest
 
       def initialize(kwargs)
         super(kwargs) do |config|

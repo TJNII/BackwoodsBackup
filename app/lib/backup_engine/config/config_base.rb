@@ -1,5 +1,6 @@
-require 'yaml_extend'
+require 'logger'
 require 'powerpack/hash'
+require 'yaml_extend'
 
 require_relative '../communicator.rb'
 require_relative '../encryption/engine.rb'
@@ -10,10 +11,11 @@ module BackupEngine
     end
 
     class ConfigBase
-      def initialize(path:, logger:)
-        @logger = logger
+      attr_reader :logger, :communicator, :encryption_engine, :manifest_encryption_engine
 
+      def initialize(path:)
         config = YAML.ext_load_file(path).symbolize_keys
+        _parse_logging_block(config.fetch(:logging, {}).symbolize_keys)
 
         _parse_communicator_block(config.fetch(:communicator).symbolize_keys)
         _parse_encryption_block(config.fetch(:encryption).symbolize_keys)
@@ -42,6 +44,13 @@ module BackupEngine
                                                                                            logger: @logger)
       rescue KeyError => e
         raise(ParseError, "Error parsing encryption block: #{e}")
+      end
+
+      def _parse_logging_block(config)
+        @logger = Logger.new(STDOUT)
+        @logger.level = config.fetch(:level, Logger::INFO)
+      rescue KeyError => e
+        raise(ParseError, "Error parsing logging block: #{e}")
       end
 
       def _process_encryption_keys(keys, key_class)

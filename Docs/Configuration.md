@@ -38,6 +38,20 @@ The [yaml extend](https://github.com/magynhard/yaml_extend) gem is in use to all
 
 ### Common Config Blocks
 
+**Logging Block**
+
+Optional
+
+```yaml
+logging:
+  # Integer corresponding to Ruby log level
+  # 0: Debug
+  # 1: Info
+  # 2: Warn
+  # 3: Error
+  level: 2
+```
+
 **Communicator Block**
 
 The communicator block configures the communicator: the engine that communicates with the backend storage.
