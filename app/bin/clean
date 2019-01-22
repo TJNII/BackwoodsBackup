@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'logger'
 require 'optparse'
 
 require_relative '../lib/backup_engine/cleaner.rb'
@@ -31,10 +30,9 @@ end
 def main
   options = parse_args
 
-  logger = Logger.new(STDOUT)
-  logger.level = options[:verbose] ? Logger::DEBUG : Logger::INFO
+  config = BackupEngine::Config::CleanConfig.new(path: options[:config_file])
+  config.logger.level = Logger::DEBUG if options[:verbose]
 
-  config = BackupEngine::Config::CleanConfig.new(path: options[:config_file], logger: logger)
   BackupEngine::Cleaner.clean(config.to_engine_hash)
 end
 
