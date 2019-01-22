@@ -54,7 +54,6 @@ module BackupEngine
           end
         end
       rescue StandardError => exc
-        # TODO: This fails the whole parent path
         @logger.error("Exception backing up #{path}: #{exc}")
         raise exc
       end
