@@ -1,0 +1,8 @@
+# https://docs.docker.com/docker-hub/builds/automated-testing/
+version: '2.1'
+services:
+  sut:
+    build: .
+    tmpfs:
+      - /ramdisk:size=1G
+    command: bundle exec rspec --fail-fast -fd

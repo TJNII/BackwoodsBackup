@@ -1,0 +1,40 @@
+AllCops:
+  TargetRubyVersion: 2.5
+
+# Favor explicit over implicit code: don't complain of "redundant returns"
+RedundantReturn:
+  Enabled: false
+
+# Just turn off the metrics cops.  Long lines and methods are fine.
+# This project prefers large, logical blocks to "papering the wall with post-its"
+Metrics:
+  Enabled: false
+
+# 123_456 doesn't add value IMO.
+NumericLiterals:
+  Enabled: false
+
+# value == 0 is fine, value.zero? is syntactic nonsense.
+Style/NumericPredicate:
+  Enabled: false
+
+# This cop can result in incompatible code
+Style/EmptyLiteral:
+  Enabled: false
+
+# `lambda {}` is more readable than `-> {}`
+Style/Lambda:
+  Enabled: false
+
+# Inconsistently enforced, and not a performance issue in this app
+Performance/RegexpMatch:
+  Enabled: false
+
+# TODO: Document and turn this one back on
+Style/Documentation:
+  Enabled: false
+
+# Ruby 3.0 upgrade cop
+# Literally recommends "magic" code.
+Style/FrozenStringLiteralComment:
+  Enabled: false

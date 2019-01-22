@@ -1,0 +1,41 @@
+#!/usr/bin/env ruby
+
+require 'logger'
+require 'optparse'
+
+require_relative '../lib/backup_engine/cleaner.rb'
+require_relative '../lib/backup_engine/config/clean_config.rb'
+
+def parse_args
+  options = {
+    verbose: false
+  }
+
+  OptionParser.new do |opts|
+    opts.banner = 'Usage: backup.rb [options]'
+
+    opts.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
+      options[:verbose] = v
+    end
+
+    opts.on('-f FILE', '--configfile FILE', 'Specify configuration File') do |f|
+      options[:config_file] = f
+    end
+  end.parse!
+
+  raise('--configfile flag is required') unless options.key?(:config_file)
+
+  return options
+end
+
+def main
+  options = parse_args
+
+  logger = Logger.new(STDOUT)
+  logger.level = options[:verbose] ? Logger::DEBUG : Logger::INFO
+
+  config = BackupEngine::Config::CleanConfig.new(path: options[:config_file], logger: logger)
+  BackupEngine::Cleaner.clean(config.to_engine_hash)
+end
+
+main

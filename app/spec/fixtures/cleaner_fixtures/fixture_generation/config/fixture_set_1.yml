@@ -1,0 +1,29 @@
+host: tests
+
+communicator:
+  type: filesystem
+  backend_config:
+    base_path: /fixtures/cleaner_fixtures/cleaner_backup
+
+encryption:
+  type: RSA
+  keys:
+    test_key_1:
+      public_key: /fixtures/cleaner_fixtures/fixture_generation/config/test1.pub.pem
+  manifest_only_keys:
+    # Two keys are required for the tests that delete parts of the backup
+    manifest_key_1:
+      public_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest1.pub.pem
+      private_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest1.key.pem
+    manifest_key_2:
+      public_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest2.pub.pem
+      private_key: /fixtures/cleaner_fixtures/fixture_generation/config/manifest2.key.pem
+
+set_name: fixture_1
+docker_host_bind_path: /
+
+paths:
+  - /tmp/fixture_target
+
+tempdirs:
+  8589934592: /ramdisk
