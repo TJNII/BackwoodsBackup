@@ -40,7 +40,7 @@ module BackupEngine
                                                                                   logger: @logger)
 
         @manifest_encryption_engine = BackupEngine::Encryption::Engines::ASymmetricRSA.new(communicator: @communicator,
-                                                                                           keys: _process_encryption_keys(config.fetch(:keys).merge(config.fetch(:manifest_only_keys, {})), :manifest_only_keys),
+                                                                                           keys: _process_encryption_keys(config.fetch(:keys, {}).merge(config.fetch(:manifest_only_keys, {})), :manifest_only_keys),
                                                                                            logger: @logger)
       rescue KeyError => e
         raise(ParseError, "Error parsing encryption block: #{e}")
