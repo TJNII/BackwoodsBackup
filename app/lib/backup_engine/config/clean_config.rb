@@ -3,7 +3,7 @@ require_relative 'config_base.rb'
 module BackupEngine
   module Config
     class CleanConfig < ConfigBase
-      attr_reader :min_block_age, :min_manifest_age, :min_set_manifests
+      attr_reader :min_block_age, :min_manifest_age, :min_set_manifests, :verify_block_checksum
 
       def initialize(kwargs)
         super(kwargs) do |config|
@@ -17,7 +17,8 @@ module BackupEngine
           logger: @logger,
           min_block_age: @min_block_age,
           min_manifest_age: @min_manifest_age,
-          min_set_manifests: @min_set_manifests
+          min_set_manifests: @min_set_manifests,
+          verify_block_checksum: @verify_block_checksum
         }
       end
 
@@ -27,6 +28,7 @@ module BackupEngine
         @min_block_age = config.fetch(:min_block_age)
         @min_manifest_age = config.fetch(:min_manifest_age)
         @min_set_manifests = config.fetch(:min_set_manifests)
+        @verify_block_checksum = config.fetch(:verify_block_checksum, false)
       rescue KeyError => e
         raise(ParseError, "Error parsing cleaner configuration: #{e}")
       end

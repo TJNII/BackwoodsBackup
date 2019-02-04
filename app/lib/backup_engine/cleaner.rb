@@ -4,9 +4,9 @@ require_relative('multi_threading.rb')
 
 module BackupEngine
   module Cleaner
-    def self.clean(encryption_engine:, logger:, min_block_age:, min_manifest_age:, min_set_manifests:, workers: BackupEngine::MultiThreading::PROCESSOR_COUNT)
-      _ensure_blocks_consistent(communicator: encryption_engine.communicator, logger: logger, workers: workers)
-      _ensure_manifests_consistent(communicator: encryption_engine.communicator, logger: logger, workers: workers)
+    def self.clean(encryption_engine:, logger:, min_block_age:, min_manifest_age:, min_set_manifests:, workers: BackupEngine::MultiThreading::PROCESSOR_COUNT, verify_block_checksum: false)
+      _ensure_blocks_consistent(communicator: encryption_engine.communicator, logger: logger, workers: workers, verify_block_checksum: verify_block_checksum)
+      _ensure_manifests_consistent(communicator: encryption_engine.communicator, logger: logger, workers: workers, verify_block_checksum: verify_block_checksum)
 
       used_blocks = _clean_manifests_and_return_blocks(encryption_engine: encryption_engine, logger: logger, min_manifest_age: min_manifest_age, min_set_manifests: min_set_manifests, workers: workers)
       _remove_unused_blocks(communicator: encryption_engine.communicator, logger: logger, used_blocks: used_blocks, min_block_age: min_block_age, workers: workers)
@@ -71,29 +71,29 @@ module BackupEngine
       return used_blocks
     end
 
-    def self._ensure_blocks_consistent(communicator:, logger:, workers:)
+    def self._ensure_blocks_consistent(communicator:, logger:, workers:, verify_block_checksum:)
       work_queue = Queue.new
       BackupEngine::BlockEncoder.list_blocks(communicator: communicator).each do |block_path|
         work_queue << block_path
       end
 
       BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |block_path|
-        _ensure_path_consistent(path: block_path, communicator: communicator, logger: logger)
+        _ensure_path_consistent(path: block_path, communicator: communicator, logger: logger, verify_block_checksum: verify_block_checksum)
       end
     end
 
-    def self._ensure_manifests_consistent(communicator:, logger:, workers:)
+    def self._ensure_manifests_consistent(communicator:, logger:, workers:, verify_block_checksum:)
       work_queue = Queue.new
       BackupEngine::Manifest.list_manifest_backups(communicator: communicator).each do |manifest_path|
         work_queue << manifest_path
       end
 
       BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |manifest_path|
-        _ensure_path_consistent(path: manifest_path, communicator: communicator, logger: logger)
+        _ensure_path_consistent(path: manifest_path, communicator: communicator, logger: logger, verify_block_checksum: verify_block_checksum)
       end
     end
 
-    def self._ensure_path_consistent(path:, communicator:, logger:)
+    def self._ensure_path_consistent(path:, communicator:, logger:, verify_block_checksum:)
       block_types = communicator.list(path: path).map(&:basename)
       if block_types.empty?
         logger.error("No block data in path #{path}")
@@ -111,7 +111,7 @@ module BackupEngine
                               raise("Unknown encryption engine #{block_type} for path #{block_path}")
                             end
 
-        encryption_engine.ensure_consistent(path: path)
+        encryption_engine.ensure_consistent(path: path, verify_block_checksum: verify_block_checksum)
       end
     end
 

@@ -25,8 +25,8 @@ module BackupEngine
       @backend.delete(path: path)
     end
 
-    def download(path:)
-      CommunicatorBackend::Encoder.decode(@backend.download(path: path))
+    def download(path:, verify_payload_checksum: false)
+      CommunicatorBackend::Encoder.decode(@backend.download(path: path), verify_payload_checksum: verify_payload_checksum)
     end
 
     def exists?(path:)

@@ -288,6 +288,11 @@ cleaner:
   # For example: This setting ensures the newest 20 manifests within a host/set pair will be retained, even if they are older than the minimum age
   min_set_manifests: 20
 
+  # Verify block checksum: When true download all the blocks and verify the checksum passes.
+  # Default value: false
+  # UPGRADE WARNING: This will remove blocks created by version 1.0 of the tool as they do not contain checksums.
+  # Defaults to false for both cost (true will cause all the blocks to be downloaded) and to prevent removing v1.0 blocks by default.
+  verify_block_checksum: true
 ```
 
 ### Complete Example:
