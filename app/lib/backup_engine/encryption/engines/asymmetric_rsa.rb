@@ -23,6 +23,9 @@ module BackupEngine
           @communicator = communicator
           @logger = logger
           @user_keys = keys.freeze
+
+          # Lock for threading-unsafe operations
+          @thread_lock = Mutex.new
         end
 
         def decrypt(path:)
@@ -150,16 +153,20 @@ module BackupEngine
         # the encrypt/decrypt methods require the settings but the cleaner methods do not
         # (and the settings are unknown to the code simply performing a clean.)
         def keys
-          return @keys unless @keys.nil?
+          # Lock for thread safety
+          # Only one thread can write to the hash at a time and prevent partial keys from being returned.
+          @thread_lock.synchronize do
+            if @keys.nil?
+              @keys = {}
+              @user_keys.each_pair do |name, rsa_keys|
+                # Use the sha256 of the user name as the internal name
+                # This is to both avoid naming problems when uploading and to obfuscate the key name
+                keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name.to_s)
+                raise('Key name sha collission') if @keys.key?(keys_key)
 
-          @keys = {}
-          @user_keys.each_pair do |name, rsa_keys|
-            # Use the sha256 of the user name as the internal name
-            # This is to both avoid naming problems when uploading and to obfuscate the key name
-            keys_key = BackupEngine::Checksums::Engines::SHA256.new.block(name.to_s)
-            raise('Key name sha collission') if @keys.key?(keys_key)
-
-            @keys[keys_key] = rsa_keys.merge(name: name)
+                @keys[keys_key] = rsa_keys.merge(name: name)
+              end
+            end
           end
 
           raise('No encryption keys') if @keys.empty?
