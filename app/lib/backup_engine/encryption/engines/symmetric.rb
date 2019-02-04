@@ -34,10 +34,17 @@ module BackupEngine
           @communicator.delete(path: path)
         end
 
-        def ensure_consistent(path:)
-          return true if exists?(path: path)
+        def ensure_consistent(path:, verify_block_checksum:)
+          unless exists?(path: path)
+            @logger.warn("No symmetric block data for #{path}")
+            delete(path: path)
+            return false
+          end
 
-          @logger.warn("No symmetric block data for #{path}")
+          @communicator.download(path: out_path(path), verify_payload_checksum: true) if verify_block_checksum
+          return true
+        rescue BackupEngine::CommunicatorBackend::Encoder::VerifyError => e
+          @logger.error("Corrupt block: #{path}: #{e}")
           delete(path: path)
           return false
         end

@@ -50,7 +50,7 @@ module BackupEngine
           @communicator.delete(path: path)
         end
 
-        def ensure_consistent(path:)
+        def ensure_consistent(path:, verify_block_checksum:)
           # Iterate over all the keys in path, and ensure they have corresponding blocks
           # NOTE: This downloads all the key files
           unless @communicator.exists?(path: path.join(KEYS_DIR))
@@ -75,13 +75,16 @@ module BackupEngine
               next
             end
 
-            key_payload = @communicator.download(path: key_path.join('sym_key.bin'))
-            if symmetric_engine.ensure_consistent(path: Pathname.new(key_payload[:metadata][:encryption][:target][:path]))
+            key_payload = @communicator.download(path: key_path.join('sym_key.bin'), verify_payload_checksum: verify_block_checksum)
+            if symmetric_engine.ensure_consistent(path: Pathname.new(key_payload[:metadata][:encryption][:target][:path]), verify_block_checksum: verify_block_checksum)
               @logger.debug("Symmetric block exists for #{key_path}")
               known_block_paths.push(key_payload[:metadata][:encryption][:target][:path])
             else
               @communicator.delete(path: key_path)
             end
+          rescue BackupEngine::CommunicatorBackend::Encoder::VerifyError => e
+            @logger.error("Corrupt key: #{key_path}: #{e}")
+            @communicator.delete(path: key_path)
           end
 
           known_block_paths.uniq!
@@ -147,7 +150,8 @@ module BackupEngine
         # the encrypt/decrypt methods require the settings but the cleaner methods do not
         # (and the settings are unknown to the code simply performing a clean.)
         def keys
-          @keys unless @keys.nil?
+          return @keys unless @keys.nil?
+
           @keys = {}
           @user_keys.each_pair do |name, rsa_keys|
             # Use the sha256 of the user name as the internal name
