@@ -10,6 +10,6 @@ gem 'zlib', '~> 1.0'
 
 group 'development' do
   gem 'rspec', '~> 3.8'
-  gem 'rubocop', '~> 0.61'
+  gem 'rubocop', '~> 0.63.0'
   gem 'simplecov', '~> 0.16'
 end
