@@ -91,11 +91,6 @@ communicator:
     # Glacier not currently supported due to it being asynchronous
     storage_class: 'ONEZONE_IA'
 
-    # Full cache seed (boolean): When true the communicator will list the contents of the bucket on startup and cache the results
-    # For backups where the [number of target files] > ([files in bucket] / 1000) this is faster and more cost-effective than individual lists.
-    # For small backups this will be slower and may cost more.
-    full_cache_seed: true
-
     # S3 client config: Config passed directly to Aws::S3::Client.new(): https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method
     s3_client_config:
       region: [AWS Region]
@@ -204,7 +199,6 @@ communicator:
   backend_config:
     bucket: 'mybucket'
     storage_class: 'ONEZONE_IA'
-    full_cache_seed: true
     s3_client_config:
       region: us-east-2
       credentials:

@@ -85,22 +85,15 @@ describe 'Backup Engine: unit' do
     end
 
     describe 'children_by_array' do
-      it 'raises exception on incomplete cache' do
-        test_class.add_by_array(path_array: %w[foo], date: 100)
-        expect { test_class.children_by_array(path_array: %w[foo]) }.to raise_exception(BackupEngine::CommunicatorBackend::S3ListCacheError)
-      end
-
       it 'returns the child list on empty list' do
         test_class.add_by_array(path_array: %w[foo], date: 100)
         test_class.add_by_array(path_array: %w[bar], date: 300)
         test_class.add_by_array(path_array: %w[baz], date: 200)
-        test_class.mark_complete_by_array(path_array: [])
 
         expect(test_class.children_by_array(path_array: [])).to eq %w[foo bar baz]
       end
 
-      it 'raises exception unknown key' do
-        test_class.mark_complete_by_array(path_array: [])
+      it 'raises exception on unknown key' do
         expect { test_class.children_by_array(path_array: %w[unknown key]) }.to raise_exception(Errno::ENOENT)
       end
 
@@ -109,55 +102,8 @@ describe 'Backup Engine: unit' do
         test_class.add_by_array(path_array: %w[foo bar baz foobaz], date: 100)
         test_class.add_by_array(path_array: %w[bar], date: 300)
         test_class.add_by_array(path_array: %w[baz], date: 200)
-        test_class.mark_complete_by_array(path_array: [])
 
         expect(test_class.children_by_array(path_array: %w[foo bar baz])).to eq %w[foobar foobaz]
-      end
-    end
-
-    describe 'complete?' do
-      it 'defaults to false' do
-        expect(test_class.complete?).to be false
-      end
-
-      it 'returns self complete flag on no path' do
-        test_class.mark_complete_by_array(path_array: [])
-        expect(test_class.complete?).to be true
-      end
-
-      it 'converts the path to an array and calls complete_by_array' do
-        expect(test_class).to receive(:complete_by_array?).with(path_array: %w[foo bar baz])
-        test_class.complete?(path: 'foo/bar/baz')
-      end
-
-      it 'rasies exception on absolute paths' do
-        expect { test_class.complete?(path: '/foo/bar/baz') }.to raise_exception(BackupEngine::CommunicatorBackend::S3ListCacheError)
-      end
-    end
-
-    describe 'complete_by_array?' do
-      it 'defaults to false' do
-        expect(test_class.complete_by_array?(path_array: [])).to be false
-      end
-
-      it 'returns false on unknown key' do
-        test_class.mark_complete_by_array(path_array: [])
-        expect(test_class.complete_by_array?(path_array: [])).to be true
-        expect(test_class.complete_by_array?(path_array: %w[unknown key])).to be false
-      end
-
-      it 'returns true when marked complete' do
-        test_class.mark_complete_by_array(path_array: [])
-        expect(test_class.complete_by_array?(path_array: [])).to be true
-      end
-
-      it 'returns complete for child caches' do
-        test_class.add_by_array(path_array: %w[foo bar], date: 100)
-        test_class.mark_complete_by_array(path_array: %w[foo bar])
-
-        expect(test_class.complete_by_array?(path_array: [])).to be false
-        expect(test_class.complete_by_array?(path_array: %w[foo])).to be false
-        expect(test_class.complete_by_array?(path_array: %w[foo bar])).to be true
       end
     end
 
@@ -244,50 +190,6 @@ describe 'Backup Engine: unit' do
         expect(test_class.lookup_by_array(path_array: %w[foo bar])).to eql(100)
         expect(test_class.lookup_by_array(path_array: %w[foo baz])).to eql(200)
         expect(test_class.lookup_by_array(path_array: %w[bar baz])).to eql(300)
-      end
-    end
-
-    describe 'mark_complete' do
-      it 'converts the path to an array and calls mark_complete_by_array' do
-        expect(test_class).to receive(:mark_complete_by_array).with(path_array: %w[foo bar baz])
-        test_class.mark_complete(path: 'foo/bar/baz')
-      end
-
-      it 'rasies exception on absolute paths' do
-        expect { test_class.mark_complete(path: '/foo/bar/baz') }.to raise_exception(BackupEngine::CommunicatorBackend::S3ListCacheError)
-      end
-    end
-
-    describe 'mark_complete_by_array' do
-      it 'marks all self and all child caches complete on empty array' do
-        test_class.add_by_array(path_array: %w[foo bar baz], date: 100)
-        test_class.mark_complete_by_array(path_array: [])
-
-        expect(test_class.complete?).to be true
-        expect(test_class.cache['foo'].complete?).to be true
-        expect(test_class.cache['foo'].cache['bar'].complete?).to be true
-      end
-
-      it 'no-ops on unknown key' do
-        test_class.mark_complete_by_array(path_array: %w[unknown key])
-        expect(test_class.complete?).to be false
-      end
-
-      it 'recursively marks complete child lists but not parents' do
-        test_class.add_by_array(path_array: %w[foo bar baz foobar], date: 100)
-        test_class.add_by_array(path_array: %w[foo bar foobar], date: 200)
-        test_class.add_by_array(path_array: %w[foo baz foobar], date: 300)
-
-        test_class.mark_complete_by_array(path_array: %w[foo bar])
-        expect(test_class.complete?).to be false
-        expect(test_class.cache['foo'].complete?).to be false
-        expect(test_class.cache['foo'].cache['baz'].complete?).to be false
-        expect(test_class.cache['foo'].cache['baz'].cache['foobar'].complete?).to be false
-
-        expect(test_class.cache['foo'].cache['bar'].complete?).to be true
-        expect(test_class.cache['foo'].cache['bar'].cache['baz'].complete?).to be true
-        expect(test_class.cache['foo'].cache['bar'].cache['baz'].cache['foobar'].complete?).to be true
-        expect(test_class.cache['foo'].cache['bar'].cache['foobar'].complete?).to be true
       end
     end
   end

@@ -7,6 +7,7 @@ module BackupEngine
 
     # Raise Errno::ENOENT on unknown keys to match Pathname .children errors
 
+    # This object stores an index of objects in S3 and their dates
     class S3ListCache
       attr_reader :date
 
@@ -14,7 +15,6 @@ module BackupEngine
         @initial_date = initial_date.freeze
         @date = @initial_date
         @cache = {}
-        @complete = false
       end
 
       def [](path)
@@ -39,21 +39,6 @@ module BackupEngine
         @cache.clone.freeze
       end
 
-      # Complete flag: set when path has been fully listed (via mark_complete())
-      # Default to self on no path for simplicity/testing
-      def complete?(path: nil)
-        return @complete if path.nil?
-
-        _by_array_wrapper(path: path) { |path_array| complete_by_array?(path_array: path_array) }
-      end
-
-      def complete_by_array?(path_array:)
-        return @complete if path_array.empty?
-        return false unless @cache.key? path_array[0]
-
-        @cache[path_array[0]].complete_by_array?(path_array: path_array[1..-1])
-      end
-
       def exists?(path:)
         _by_array_wrapper(path: path) { |path_array| exists_by_array?(path_array: path_array) }
       end
@@ -70,11 +55,7 @@ module BackupEngine
       end
 
       def children_by_array(path_array:)
-        if path_array.empty?
-          raise(S3ListCacheError, "Cannot list #{path_array.join('/')}: Cache incomplete") unless @complete
-
-          return @cache.keys
-        end
+        return @cache.keys if path_array.empty?
 
         raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
 
@@ -114,18 +95,6 @@ module BackupEngine
         return @cache[path_array[0]].lookup_by_array(path_array: path_array[1..-1])
       end
 
-      def mark_complete(path:)
-        _by_array_wrapper(path: path) { |path_array| mark_complete_by_array(path_array: path_array) }
-      end
-
-      def mark_complete_by_array(path_array:)
-        return _complete! if path_array.empty?
-        # no-op on unknown key: This is caused by a list for a missing key
-        return unless @cache.key? path_array[0]
-
-        @cache[path_array[0]].mark_complete_by_array(path_array: path_array[1..-1])
-      end
-
       private
 
       def _by_array_wrapper(path:)
@@ -134,14 +103,6 @@ module BackupEngine
         raise(S3ListCacheError, "Error converting #{path} to BackupEngine::Pathname: to_a[0] is not '.'") unless path_array[0] == '.'
 
         return yield(path_array[1..-1])
-      end
-
-      # Mark this cache and all child caches complete
-      def _complete!
-        @complete = true
-        @cache.values.each do |child|
-          child.mark_complete_by_array(path_array: [])
-        end
       end
     end
   end

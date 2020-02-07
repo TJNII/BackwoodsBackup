@@ -9,27 +9,27 @@ module BackupEngine
     end
 
     class S3
-      def initialize(bucket:, s3_client_config:, storage_class: 'STANDARD_IA', full_cache_seed: false)
+      def initialize(bucket:, s3_client_config:, storage_class: 'STANDARD_IA', full_cache_seed: true)
         @bucket = bucket.freeze
         @storage_class = storage_class.freeze
 
-        # Do not enforce any required keys as they can all come form ENV vars, AWS config files, etc...
+        # Do not enforce any required keys as they can all come from ENV vars, AWS config files, etc...
         if s3_client_config.key?('credentials')
           # Reformat credentials into the proper object, because AWS
           s3_client_config['credentials'] = Aws::Credentials.new(s3_client_config['credentials'].fetch('access_key_id'), s3_client_config['credentials'].fetch('secret_access_key'))
         end
         @s3 = Aws::S3::Client.new(s3_client_config.symbolize_keys)
 
-        @cache = S3ListCache.new(initial_date: Time.new(0))
+        # Always perform a full cache seed to simplify cache handling, changed in [TODO: VERSION]
+        # https://github.com/TJNII/BackwoodsBackup/issues/8
+        # full_cache_seed argument is left for reverse compatibility in configs
+        raise(S3CommunicatorError, 'full_cache_seed option has been deprecated, see https://github.com/TJNII/BackwoodsBackup/issues/8') unless full_cache_seed
 
-        # Cost/time optimization.  When full_cache_seed is true list the entire bucket and store it in the cache.
-        # For backups where the [number of target files] > ([files in bucket] / 1000) this is faster and more cost-effective.
-        # For small backups this will be slower and may cost more.
-        _s3_list(path: Pathname.new('.')) if full_cache_seed
+        @cache = S3ListCache.new(initial_date: Time.new(0))
+        _s3_list(path: Pathname.new('.'))
       end
 
       def date(path:)
-        _s3_list(path: path) unless @cache.exists?(path: path)
         @cache[path]
       end
 
@@ -61,16 +61,10 @@ module BackupEngine
       end
 
       def exists?(path:)
-        return true if @cache.exists?(path: path)
-
-        _s3_list(path: path)
-        return @cache.exists?(path: path)
+        @cache.exists?(path: path)
       end
 
       def list(path:)
-        # Seed the cache, if needed
-        _s3_list(path: path) unless @cache.complete?(path: path)
-
         @cache.children(path: path).sort.map { |child| path.join(child) }
       end
 
@@ -104,8 +98,6 @@ module BackupEngine
           list_out = @s3.list_objects_v2(bucket: @bucket, continuation_token: list_out.next_continuation_token)
           _cache_add_s3_list_output(contents: list_out.contents)
         end
-
-        @cache.mark_complete(path: path)
       end
     end
   end
