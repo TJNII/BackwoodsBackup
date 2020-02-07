@@ -9,29 +9,17 @@ module BackupEngine
 
     # This object stores an index of objects in S3 and their dates
     class S3ListCache
-      attr_reader :date
-
-      def initialize(initial_date: 0)
-        @initial_date = initial_date.freeze
-        @date = @initial_date
+      def initialize
         @cache = {}
       end
 
-      def [](path)
-        _by_array_wrapper(path: path) { |path_array| lookup_by_array(path_array: path_array) }
-      end
-
       def add(path:, date:)
-        _by_array_wrapper(path: path) { |path_array| add_by_array(path_array: path_array, date: date) }
-      end
+        path_obj = _sanitize_path(path: path)
+        ([path_obj] + path_obj.fully_qualified_parent_directories).each do |sub_path_obj|
+          next if @cache[sub_path_obj.to_s].to_f >= date
 
-      def add_by_array(path_array:, date:)
-        @date = date if date > @date
-
-        return if path_array.empty?
-
-        @cache[path_array[0]] = S3ListCache.new(initial_date: @initial_date) unless @cache.key?(path_array[0])
-        @cache[path_array[0]].add_by_array(path_array: path_array[1..-1], date: date)
+          @cache[sub_path_obj.to_s] = date
+        end
       end
 
       # Direct cache read, intended for testing & internal use
@@ -40,69 +28,55 @@ module BackupEngine
       end
 
       def exists?(path:)
-        _by_array_wrapper(path: path) { |path_array| exists_by_array?(path_array: path_array) }
-      end
-
-      def exists_by_array?(path_array:)
-        return true if path_array.empty? # self
-        return false unless @cache.key? path_array[0]
-
-        return @cache[path_array[0]].exists_by_array?(path_array: path_array[1..-1])
+        @cache.key?(_sanitize_path(path: path).to_s)
       end
 
       def children(path:)
-        _by_array_wrapper(path: path) { |path_array| children_by_array(path_array: path_array) }
+        path_obj = _sanitize_path(path: path)
+        raise(Errno::ENOENT, "Unknown path #{path}") unless exists?(path: path_obj)
+
+        path_str = path_obj.to_s
+        path_str_end = path_str.length - 1
+
+        if path_str == BackupEngine::Pathname::SEPARATOR
+          matching_paths = @cache.keys
+        else
+          matching_paths = @cache.keys.select { |cache_path| cache_path.length > path_str.length && cache_path[0..path_str_end] == path_str }
+          matching_paths.map! { |cache_path| cache_path[(path_str.length)..-1] } # Strip parent path
+        end
+
+        # Only return 1st level children, like Pathname .children
+        return matching_paths.map { |cache_path| cache_path.split(BackupEngine::Pathname::SEPARATOR)[1] }.compact.uniq
       end
 
-      def children_by_array(path_array:)
-        return @cache.keys if path_array.empty?
+      def date(path:)
+        path_obj = _sanitize_path(path: path)
+        raise(Errno::ENOENT, "Unknown path #{path}") unless exists?(path: path_obj)
 
-        raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
-
-        begin
-          return @cache[path_array[0]].children_by_array(path_array: path_array[1..-1])
-        rescue Errno::ENOENT
-          raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}")
-        end
+        return @cache[path_obj.to_s]
       end
 
       def delete(path:)
-        _by_array_wrapper(path: path) { |path_array| delete_by_array(path_array: path_array) }
-      end
+        path_obj = _sanitize_path(path: path)
+        raise(Errno::ENOENT, "Unknown path #{path}") unless exists?(path: path_obj)
 
-      def delete_by_array(path_array:)
-        if path_array.empty?
-          @cache = {}
-          return
-        end
-
-        raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}") unless @cache.key? path_array[0]
-
-        begin
-          @cache[path_array[0]].delete_by_array(path_array: path_array[1..-1])
-        rescue Errno::ENOENT
-          raise(Errno::ENOENT, "Unknown path #{path_array.join('/')}")
-        end
+        path_str = path_obj.to_s
+        path_str_end = path_str.length - 1
+        @cache.delete_if { |cache_path, _| cache_path.length >= path_str.length && cache_path[0..path_str_end] == path_str }
 
         # As S3 doesn't have directories the parent will no longer exist if the child is empty
-        @cache.delete(path_array[0]) if @cache[path_array[0]].cache.empty?
-      end
+        path_obj.fully_qualified_parent_directories.reverse_each do |parent_path_obj|
+          next unless exists?(path: parent_path_obj)
+          break unless children(path: parent_path_obj).empty?
 
-      def lookup_by_array(path_array:)
-        return @date if path_array.empty?
-        return @date unless @cache.key? path_array[0]
-
-        return @cache[path_array[0]].lookup_by_array(path_array: path_array[1..-1])
+          @cache.delete(parent_path_obj.to_s)
+        end
       end
 
       private
 
-      def _by_array_wrapper(path:)
-        path_obj = BackupEngine::Pathname.new(path)
-        path_array = path_obj.to_a.map(&:to_s)
-        raise(S3ListCacheError, "Error converting #{path} to BackupEngine::Pathname: to_a[0] is not '.'") unless path_array[0] == '.'
-
-        return yield(path_array[1..-1])
+      def _sanitize_path(path:)
+        return BackupEngine::Pathname.new('/').join(path)
       end
     end
   end

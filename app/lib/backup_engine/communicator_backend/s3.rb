@@ -25,12 +25,12 @@ module BackupEngine
         # full_cache_seed argument is left for reverse compatibility in configs
         raise(S3CommunicatorError, 'full_cache_seed option has been deprecated, see https://github.com/TJNII/BackwoodsBackup/issues/8') unless full_cache_seed
 
-        @cache = S3ListCache.new(initial_date: Time.new(0))
+        @cache = S3ListCache.new
         _s3_list(path: Pathname.new('.'))
       end
 
       def date(path:)
-        @cache[path]
+        @cache.date(path: path)
       end
 
       def delete(path:)
