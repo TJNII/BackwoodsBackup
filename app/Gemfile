@@ -5,6 +5,7 @@ gem 'bindata', '~> 2.4'
 gem 'concurrent-ruby', '~> 1.1'
 gem 'openssl', '~> 2.1'
 gem 'powerpack', '~> 0.1'
+gem 'redis', '~> 4.1'
 gem 'yaml_extend', '~> 0.2'
 gem 'zlib', '~> 1.0'
 
