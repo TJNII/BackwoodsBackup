@@ -60,8 +60,13 @@ module BackupEngine
         if path_str == BackupEngine::Pathname::SEPARATOR
           matching_paths = @cache.keys
         else
-          matching_paths = @cache.keys.select { |cache_path| cache_path.length > path_str.length && cache_path[0..path_str_end] == path_str }
-          matching_paths.map! { |cache_path| cache_path[(path_str.length)..-1] } # Strip parent path
+          matching_paths = []
+          # Use each_pair (cursor based with Redis) to avoid loading millions of keys into memory when using remote backed caches
+          @cache.each_pair do |cache_path, _|
+            next unless cache_path.length > path_str.length && cache_path[0..path_str_end] == path_str
+
+            matching_paths.push(cache_path[(path_str.length)..-1]) # Strip parent path
+          end
         end
 
         # Only return 1st level children, like Pathname .children
