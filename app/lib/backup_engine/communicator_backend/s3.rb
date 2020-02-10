@@ -9,7 +9,7 @@ module BackupEngine
     end
 
     class S3
-      def initialize(logger:, bucket:, s3_client_config:, storage_class: 'STANDARD_IA', full_cache_seed: true)
+      def initialize(logger:, bucket:, s3_client_config:, cache_config: {}, storage_class: 'STANDARD_IA', full_cache_seed: true)
         @logger = logger
         @bucket = bucket.freeze
         @storage_class = storage_class.freeze
@@ -26,7 +26,7 @@ module BackupEngine
         # full_cache_seed argument is left for reverse compatibility in configs
         raise(S3CommunicatorError, 'full_cache_seed option has been deprecated, see https://github.com/TJNII/BackwoodsBackup/issues/8') unless full_cache_seed
 
-        @cache = S3ListCache.new do |cache|
+        @cache = S3ListCache.new(cache_config.symbolize_keys.merge(id: bucket)) do |cache|
           @logger.info('Seeding local cache of S3 object paths')
           _s3_list(path: Pathname.new('.'), cache: cache)
           @logger.info('Seeding local cache of S3 object paths complete')

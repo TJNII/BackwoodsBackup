@@ -1,4 +1,6 @@
+require 'powerpack/hash'
 require_relative '../pathname.rb'
+require_relative '../redis_hash.rb'
 
 module BackupEngine
   module CommunicatorBackend
@@ -14,9 +16,19 @@ module BackupEngine
     #  As such the non-[] methods are avoided on the @cache object to ensure the default hash handler
     #  is called on empty cache.
     class S3ListCache
-      def initialize(&block)
+      def initialize(id:, type: 'memory', ttl: 2592000, redis_config: {}, &block)
         @seed_block = block
-        @cache = Hash.new { |h, k| _cache_default_handler(h, k) }
+
+        case type
+        when 'memory'
+          @cache = Hash.new { |h, k| _cache_default_handler(h, k) }
+        when 'redis'
+          @cache = BackupEngine::RedisHash.new(redis_communicator: Redis.new(redis_config.symbolize_keys),
+                                               redis_path: "BackwoodsBackup/BackupEngine/CommunicatorBackend/S3ListCache/#{id}",
+                                               ttl: ttl) { |h, k| _cache_default_handler(h, k) }
+        else
+          raise(ArgumentError, "Unknown cache type #{cache_type}")
+        end
       end
 
       def add(path:, date:)
@@ -30,7 +42,7 @@ module BackupEngine
 
       # Direct cache read, intended for testing & internal use
       def cache
-        @cache.clone.freeze
+        @cache.to_h.clone.freeze
       end
 
       def exists?(path:)
