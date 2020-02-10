@@ -20,7 +20,7 @@ describe 'Backup Engine: Functional' do
 
   before :all do
     @logger = Logger.new(STDOUT)
-    @communicator = BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: '/tmp/test_backup_output' })
+    @communicator = BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: '/tmp/test_backup_output' }, logger: @logger)
 
     @encryption_keys = {}.tap do |h|
       # TODO: Test with multiple keys

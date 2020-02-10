@@ -19,7 +19,7 @@ describe 'Cleaner: Functional' do
     logger
   end
 
-  let(:communicator) { BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: backup_directory }) }
+  let(:communicator) { BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: backup_directory }, logger: logger) }
   let(:encryption_keys) do
     {
       manifest_key_1: {

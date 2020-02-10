@@ -8,15 +8,21 @@ module BackupEngine
     # Raise Errno::ENOENT on unknown keys to match Pathname .children errors
 
     # This object stores an index of objects in S3 and their dates
+    # It takes a block that will be called to seed the cache is the cache is empty
+    # NOTE: Cache seeding was written with Redis TTLs in mind where the entire hash will expire.
+    #  Having the entire hash expire is useful as then there is no negative TTL handling required
+    #  As such the non-[] methods are avoided on the @cache object to ensure the default hash handler
+    #  is called on empty cache.
     class S3ListCache
-      def initialize
-        @cache = {}
+      def initialize(&block)
+        @seed_block = block
+        @cache = Hash.new { |h, k| _cache_default_handler(h, k) }
       end
 
       def add(path:, date:)
         path_obj = _sanitize_path(path: path)
-        ([path_obj] + path_obj.fully_qualified_parent_directories).each do |sub_path_obj|
-          next if @cache[sub_path_obj.to_s].to_f >= date
+        ([path_obj] + path_obj.fully_qualified_parent_directories.reverse).each do |sub_path_obj|
+          break if @cache.fetch(sub_path_obj.to_s, 0).to_f >= date
 
           @cache[sub_path_obj.to_s] = date
         end
@@ -28,7 +34,8 @@ module BackupEngine
       end
 
       def exists?(path:)
-        @cache.key?(_sanitize_path(path: path).to_s)
+        # Don't use .key? as that doesn't trigger the seed block
+        !@cache[_sanitize_path(path: path).to_s].nil?
       end
 
       def children(path:)
@@ -50,10 +57,10 @@ module BackupEngine
       end
 
       def date(path:)
-        path_obj = _sanitize_path(path: path)
-        raise(Errno::ENOENT, "Unknown path #{path}") unless exists?(path: path_obj)
+        ret_val = @cache[_sanitize_path(path: path).to_s]
+        return ret_val unless ret_val.nil?
 
-        return @cache[path_obj.to_s]
+        raise(Errno::ENOENT, "Unknown path #{path}")
       end
 
       def delete(path:)
@@ -74,6 +81,13 @@ module BackupEngine
       end
 
       private
+
+      def _cache_default_handler(hash, key)
+        return nil unless hash.empty?
+
+        @seed_block.call(self)
+        hash.fetch(key, nil)
+      end
 
       def _sanitize_path(path:)
         return BackupEngine::Pathname.new('/').join(path)
