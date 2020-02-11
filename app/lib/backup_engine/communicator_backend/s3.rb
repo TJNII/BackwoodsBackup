@@ -21,7 +21,7 @@ module BackupEngine
         end
         @s3 = Aws::S3::Client.new(s3_client_config.symbolize_keys)
 
-        # Always perform a full cache seed to simplify cache handling, changed in [TODO: VERSION]
+        # Always perform a full cache seed to simplify cache handling, changed in v1.2.0
         # https://github.com/TJNII/BackwoodsBackup/issues/8
         # full_cache_seed argument is left for reverse compatibility in configs
         raise(S3CommunicatorError, 'full_cache_seed option has been deprecated, see https://github.com/TJNII/BackwoodsBackup/issues/8') unless full_cache_seed
