@@ -86,9 +86,9 @@ describe 'Backup Engine: unit' do
           test_obj.add(path: 'foo/baz', date: 200)
           test_obj.add(path: 'bar/baz', date: 300)
 
-          expect(test_obj.date(path: 'foo/bar')).to eql(100)
-          expect(test_obj.date(path: 'foo/baz')).to eql(200)
-          expect(test_obj.date(path: 'bar/baz')).to eql(300)
+          expect(test_obj.date(path: 'foo/bar')).to eql(Time.at(100))
+          expect(test_obj.date(path: 'foo/baz')).to eql(Time.at(200))
+          expect(test_obj.date(path: 'bar/baz')).to eql(Time.at(300))
         end
       end
 
@@ -149,7 +149,7 @@ describe 'Backup Engine: unit' do
         describe '.date' do
           it 'Seeds cold caches' do
             seed_values.each_pair do |path, date|
-              expect(test_obj.date(path: path)).to eq date
+              expect(test_obj.date(path: path)).to eq Time.at(date)
             end
           end
 

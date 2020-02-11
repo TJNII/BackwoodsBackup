@@ -68,6 +68,7 @@ module BackupEngine
         @cache.exists?(path: path)
       end
 
+      # NOTE: This only returns the next level paths and is intended to behave like a filesystem ls call
       def list(path:)
         @cache.children(path: path).sort.map { |child| path.join(child) }
       end

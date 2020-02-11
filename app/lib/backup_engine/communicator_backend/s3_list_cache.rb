@@ -75,7 +75,7 @@ module BackupEngine
 
       def date(path:)
         ret_val = @cache[_sanitize_path(path: path).to_s]
-        return ret_val unless ret_val.nil?
+        return Time.at(ret_val) unless ret_val.nil?
 
         raise(Errno::ENOENT, "Unknown path #{path}")
       end
