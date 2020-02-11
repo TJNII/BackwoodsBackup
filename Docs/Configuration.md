@@ -91,11 +91,6 @@ communicator:
     # Glacier not currently supported due to it being asynchronous
     storage_class: 'ONEZONE_IA'
 
-    # Full cache seed (boolean): When true the communicator will list the contents of the bucket on startup and cache the results
-    # For backups where the [number of target files] > ([files in bucket] / 1000) this is faster and more cost-effective than individual lists.
-    # For small backups this will be slower and may cost more.
-    full_cache_seed: true
-
     # S3 client config: Config passed directly to Aws::S3::Client.new(): https://docs.aws.amazon.com/sdk-for-ruby/v3/api/Aws/S3/Client.html#initialize-instance_method
     s3_client_config:
       region: [AWS Region]
@@ -104,6 +99,23 @@ communicator:
 	# Note that the backups, cleaner, and restores all use different IAM users and keys for security.
         access_key_id: [Access Key]
         secret_access_key: [Secret Key]
+
+    # Cache: A list of the bucket contents is downloaded and cached locally for speed/cost.
+    cache_config:
+      # Cache type: One of:
+      #   memory: List is stored in process memory and seeded each run (default)
+      #   redis: List is stored in a Redis (redis.io) instance, list is seeded as the cache expires and is shared between runs
+      type: 'memory'
+      # TTL: Cache expiration in seconds, currently only applies to 'redis' cache type
+      ttl: 2592000
+
+      # Redis config: Arguments passed directly through to the Redis-rb gem, only applies to 'redis' cache type
+      # https://github.com/redis/redis-rb#getting-started
+      # Note that the REDIS_URL environment variable is also supported.
+      redis_config:
+        host: 127.0.0.1
+        port: 6379
+
 ```
 
 ### Encryption Block
@@ -204,7 +216,6 @@ communicator:
   backend_config:
     bucket: 'mybucket'
     storage_class: 'ONEZONE_IA'
-    full_cache_seed: true
     s3_client_config:
       region: us-east-2
       credentials:
@@ -279,7 +290,8 @@ encryption: [Encryption block, see above]
 cleaner:
   # Minimum block age: Minimum age in seconds before a unused block will be removed
   # This is to prevent the cleaner from removing newly uploaded blocks before a manifest was written
-  min_block_age: 86400
+  # NOTE: When using persistent S3 cache beckends like Redis this value must be >= the cache TTL to avoid race conditions and broken backups.
+  min_block_age: 2592000
 
   # Minimum manifest age: Minimum age in seconds before a manifest will be removed
   min_manifest_age: 31536000

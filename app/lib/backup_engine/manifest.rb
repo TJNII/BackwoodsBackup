@@ -42,6 +42,8 @@ module BackupEngine
                             manifest: @manifest)
 
         compression_result = compression_engine.compress(payload)
+        @logger.debug("Manifest length: #{payload.length} Compressed #{compression_result.compression_percent}%")
+
         encryption_engine.encrypt(path: path,
                                   payload: compression_result.payload,
                                   metadata: {

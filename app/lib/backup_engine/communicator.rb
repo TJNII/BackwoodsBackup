@@ -6,12 +6,12 @@ require_relative 'communicator_backend/encoder.rb'
 
 module BackupEngine
   class Communicator
-    def initialize(type:, backend_config:)
+    def initialize(type:, backend_config:, logger:)
       @backend = case type
                  when 'filesystem'
                    CommunicatorBackend::Filesystem.new(backend_config.symbolize_keys)
                  when 's3'
-                   CommunicatorBackend::S3.new(backend_config.symbolize_keys)
+                   CommunicatorBackend::S3.new(backend_config.symbolize_keys.merge(logger: logger))
                  else
                    raise("Unknown communicator type #{type}")
                  end
