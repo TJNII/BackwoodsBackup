@@ -10,7 +10,7 @@ require_relative '../lib/backup_engine/manifest.rb'
 def parse_args
   options = {}
   OptionParser.new do |opts|
-    opts.banner = 'Usage: backup.rb [options]'
+    opts.banner = 'Usage: backup [options]'
 
     opts.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
       options[:verbose] = v

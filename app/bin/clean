@@ -11,7 +11,7 @@ def parse_args
   }
 
   OptionParser.new do |opts|
-    opts.banner = 'Usage: backup.rb [options]'
+    opts.banner = 'Usage: clean [options]'
 
     opts.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
       options[:verbose] = v
