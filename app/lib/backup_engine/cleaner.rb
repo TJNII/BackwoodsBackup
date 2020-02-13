@@ -42,12 +42,8 @@ module BackupEngine
       # Using a hash instead of an array for speed
       # Looking up a key in a hash is faster than searching an array.
       used_blocks = {}
-      work_queue = Queue.new
-      BackupEngine::Manifest.list_manifest_sets(communicator: encryption_engine.communicator).each do |set_path|
-        work_queue << set_path
-      end
 
-      BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |set_path|
+      pool = BackupEngine::MultiThreading::WorkerPool.new(workers: workers) do |set_path|
         target_manifests = {}
         encryption_engine.communicator.list(path: set_path).each do |manifest_path|
           age = Time.new - encryption_engine.communicator.date(path: manifest_path)
@@ -68,29 +64,28 @@ module BackupEngine
         end
       end
 
+      pool.process(BackupEngine::Manifest.list_manifest_sets(communicator: encryption_engine.communicator))
+      pool.join
+
       return used_blocks
     end
 
     def self._ensure_blocks_consistent(communicator:, logger:, workers:, verify_block_checksum:)
-      work_queue = Queue.new
-      BackupEngine::BlockEncoder.list_blocks(communicator: communicator).each do |block_path|
-        work_queue << block_path
-      end
-
-      BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |block_path|
+      pool = BackupEngine::MultiThreading::WorkerPool.new(workers: workers) do |block_path|
         _ensure_path_consistent(path: block_path, communicator: communicator, logger: logger, verify_block_checksum: verify_block_checksum)
       end
+
+      pool.process(BackupEngine::BlockEncoder.list_blocks(communicator: communicator))
+      pool.join
     end
 
     def self._ensure_manifests_consistent(communicator:, logger:, workers:, verify_block_checksum:)
-      work_queue = Queue.new
-      BackupEngine::Manifest.list_manifest_backups(communicator: communicator).each do |manifest_path|
-        work_queue << manifest_path
-      end
-
-      BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |manifest_path|
+      pool = BackupEngine::MultiThreading::WorkerPool.new(workers: workers) do |manifest_path|
         _ensure_path_consistent(path: manifest_path, communicator: communicator, logger: logger, verify_block_checksum: verify_block_checksum)
       end
+
+      pool.process(BackupEngine::Manifest.list_manifest_backups(communicator: communicator))
+      pool.join
     end
 
     def self._ensure_path_consistent(path:, communicator:, logger:, verify_block_checksum:)
@@ -135,12 +130,7 @@ module BackupEngine
     end
 
     def self._remove_unused_blocks(communicator:, logger:, used_blocks:, min_block_age:, workers:)
-      work_queue = Queue.new
-      BackupEngine::BlockEncoder.list_blocks(communicator: communicator).each do |block_path|
-        work_queue << block_path
-      end
-
-      BackupEngine::MultiThreading.worker_pool(workers: workers, work_queue: work_queue) do |block_path|
+      pool = BackupEngine::MultiThreading::WorkerPool.new(workers: workers) do |block_path|
         block_age = Time.new - communicator.date(path: block_path)
 
         if used_blocks.key?(block_path.to_s)
@@ -155,6 +145,9 @@ module BackupEngine
           communicator.delete(path: block_path)
         end
       end
+
+      pool.process(BackupEngine::BlockEncoder.list_blocks(communicator: communicator))
+      pool.join
     end
   end
 end
