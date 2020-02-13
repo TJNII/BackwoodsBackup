@@ -83,8 +83,12 @@ describe 'Backup Engine: unit' do
         end
 
         it 'returns the objects for the path' do
-          expect(test_obj.list(path: Pathname.new('foo'))).to eq(['foo/bar'].map { |p| Pathname.new(p) })
-          expect(test_obj.list(path: Pathname.new('foo/bar'))).to eq(['foo/bar/foobar', 'foo/bar/foobaz'].map { |p| Pathname.new(p) })
+          expect(test_obj.list(path: BackupEngine::Pathname.new('foo'))).to eq(['foo/bar'].map { |p| BackupEngine::Pathname.new(p) })
+          expect(test_obj.list(path: BackupEngine::Pathname.new('foo/bar'))).to eq(['foo/bar/foobar', 'foo/bar/foobaz'].map { |p| BackupEngine::Pathname.new(p) })
+        end
+
+        it 'supports depth' do
+          expect(test_obj.list(path: BackupEngine::Pathname.new('foo'), depth: 2)).to eq(['foo/bar/foobar', 'foo/bar/foobaz'].map { |p| BackupEngine::Pathname.new(p) })
         end
       end
 

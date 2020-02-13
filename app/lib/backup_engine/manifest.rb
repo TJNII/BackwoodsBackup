@@ -113,9 +113,7 @@ module BackupEngine
     end
 
     def self.list_manifest_backups(communicator:)
-      list_manifest_sets(communicator: communicator).map do |set_path|
-        communicator.list(path: set_path)
-      end.flatten
+      return communicator.list(path: MANIFESTS_PATH, depth: 3)
     rescue Errno::ENOENT
       return []
     end
@@ -127,9 +125,7 @@ module BackupEngine
     end
 
     def self.list_manifest_sets(communicator:)
-      list_manifest_hosts(communicator: communicator).map do |host_path|
-        communicator.list(path: host_path)
-      end.flatten
+      return communicator.list(path: MANIFESTS_PATH, depth: 2)
     rescue Errno::ENOENT
       return []
     end

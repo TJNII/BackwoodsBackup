@@ -25,8 +25,13 @@ module BackupEngine
         File.exist?(@base_path.join(path))
       end
 
-      def list(path:)
-        @base_path.join(path).children(false).sort.map { |child| path.join(child) }
+      def list(path:, depth: 1)
+        raise('Illegal depth') if depth <= 0
+
+        child_paths = @base_path.join(path).children(false).sort.map { |child| path.join(child) }
+        return child_paths if depth == 1
+
+        return child_paths.map { |child_path| list(path: child_path, depth: (depth - 1)) }.flatten
       end
 
       def upload(path:, payload:)
