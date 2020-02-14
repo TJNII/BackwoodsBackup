@@ -43,7 +43,7 @@ Cleaner
 
 Scheduling is left as an exercise to the reader, as that will likely be specific to the environment
 
-The cleaner does multi-thread, and will consume 100% CPU is not IO bound.
+The cleaner is multi-thread but due to Ruby's GIL it will currently only use one core in practice.
 It is intended to be run on a dedicated host.
 
 ### Filesystem communicator clean
