@@ -23,6 +23,7 @@ module BackupEngine
         @seed_block = block
         @logger = logger
         @index_lock = Mutex.new
+        @seed_lock = Mutex.new
 
         case type
         when 'memory'
@@ -139,11 +140,21 @@ module BackupEngine
       private
 
       def _cache_default_handler(hash, key)
-        return nil unless hash.empty?
+        @seed_lock.synchronize do
+          return nil unless hash.empty?
 
-        _invalidate_index
-        @seed_block.call(self)
-        hash.fetch(key, nil)
+          _invalidate_index
+
+          begin
+            @seed_block.call(self)
+          rescue Exception => e # rubocop: disable Lint/RescueException
+            # NOTE: This intentionally catches SystemExit and Interrupt to ensure partial caches don't persist in external stores on ctrl-c
+            hash.clear
+            raise(e)
+          end
+
+          hash.fetch(key, nil)
+        end
       end
 
       def _delete_from_index(key)

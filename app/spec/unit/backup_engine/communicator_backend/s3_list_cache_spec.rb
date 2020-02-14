@@ -190,11 +190,7 @@ describe 'Backup Engine: unit' do
       end
 
       describe 'Cache Seeding' do
-        let(:seed_values) do
-          Hash.new.tap do |h|
-            h[Array.new(3) { SecureRandom.hex }.join('/')] = rand(0..1000)
-          end
-        end
+        let(:seed_values) { Array.new(10) { [Array.new(3) { SecureRandom.hex }.join('/'), rand(0..1000)] }.to_h }
 
         let(:test_obj) do
           described_class.new(test_config) do |cache_obj|
@@ -204,6 +200,14 @@ describe 'Backup Engine: unit' do
             seed_values.each_pair do |path, date|
               cache_obj.add(path: path, date: date)
             end
+          end
+        end
+
+        let(:incomplete_loader) do
+          described_class.new(test_config) do |cache_obj|
+            # Write a single value to ensure the backend object exists
+            cache_obj.add(path: seed_values.keys[0], date: seed_values.values[0])
+            raise('Oh bother')
           end
         end
 
@@ -220,6 +224,13 @@ describe 'Backup Engine: unit' do
               expect { test_obj.date(path: path) }.to raise_exception(Errno::ENOENT)
             end
           end
+
+          it 'Seeds after incomplete loads' do
+            expect { incomplete_loader.exists?(path: 'kerboom') }.to raise_exception(StandardError)
+            seed_values.each_pair do |path, date|
+              expect(test_obj.date(path: path)).to eq Time.at(date)
+            end
+          end
         end
 
         describe '.exists' do
@@ -233,6 +244,13 @@ describe 'Backup Engine: unit' do
             test_obj.add(path: 'foo/bar', date: 100)
             seed_values.keys.each do |path|
               expect(test_obj.exists?(path: path)).to eq false
+            end
+          end
+
+          it 'Seeds after incomplete loads' do
+            expect { incomplete_loader.exists?(path: 'kerboom') }.to raise_exception(StandardError)
+            seed_values.keys.each do |path|
+              expect(test_obj.exists?(path: path)).to eq true
             end
           end
         end
