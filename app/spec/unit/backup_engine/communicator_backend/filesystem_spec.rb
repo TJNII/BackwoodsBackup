@@ -91,6 +91,10 @@ describe 'Backup Engine: unit' do
         expect(test_obj.list(path: Pathname.new('foo'))).to eq(['foo/bar'].map { |p| Pathname.new(p) })
         expect(test_obj.list(path: Pathname.new('foo/bar'))).to eq(['foo/bar/foobar', 'foo/bar/foobaz'].map { |p| Pathname.new(p) })
       end
+
+      it 'supports depth' do
+        expect(test_obj.list(path: Pathname.new('foo'), depth: 2)).to eq(['foo/bar/foobar', 'foo/bar/foobaz'].map { |p| Pathname.new(p) })
+      end
     end
 
     describe '.upload' do

@@ -7,6 +7,8 @@ module BackupEngine
   class RedisHash
     include Enumerable
 
+    attr_reader :path
+
     def initialize(redis_communicator:, redis_path:, ttl:, &block)
       @redis = redis_communicator
       @path = redis_path

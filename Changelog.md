@@ -1,6 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2020-02-17
+### Fixes
+- Fix errors in script help blurbs
+- Improve S3 cleaner performance
+
+- Persistent S3 path caching in Redis
 ## [1.2.0] - 2020-02-11
 ### Added
 - Persistent S3 path caching in Redis

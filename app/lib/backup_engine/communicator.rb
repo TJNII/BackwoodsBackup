@@ -33,8 +33,8 @@ module BackupEngine
       @backend.exists?(path: path)
     end
 
-    def list(path:)
-      @backend.list(path: path)
+    def list(path:, depth: 1)
+      @backend.list(path: path, depth: depth)
     end
 
     def upload(path:, metadata:, payload:)

@@ -26,7 +26,7 @@ module BackupEngine
         # full_cache_seed argument is left for reverse compatibility in configs
         raise(S3CommunicatorError, 'full_cache_seed option has been deprecated, see https://github.com/TJNII/BackwoodsBackup/issues/8') unless full_cache_seed
 
-        @cache = S3ListCache.new(cache_config.symbolize_keys.merge(id: bucket)) do |cache|
+        @cache = S3ListCache.new(cache_config.symbolize_keys.merge(id: bucket, logger: logger)) do |cache|
           @logger.info('Seeding local cache of S3 object paths')
           _s3_list(path: Pathname.new('.'), cache: cache)
           @logger.info('Seeding local cache of S3 object paths complete')
@@ -68,9 +68,8 @@ module BackupEngine
         @cache.exists?(path: path)
       end
 
-      # NOTE: This only returns the next level paths and is intended to behave like a filesystem ls call
-      def list(path:)
-        @cache.children(path: path).sort.map { |child| path.join(child) }
+      def list(path:, depth: 1)
+        @cache.children(path: path, fully_qualified: true, depth: depth)
       end
 
       def upload(path:, payload:)
