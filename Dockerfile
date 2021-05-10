@@ -1,4 +1,4 @@
-FROM ruby:2.5
+FROM ruby:2.7
 
 # Ensure the locale is set to UTF-8 to avoid encoding errors on non-ASCII paths
 RUN echo 'locales locales/locales_to_be_generated multiselect en_US.UTF-8 UTF-8' | debconf-set-selections && \

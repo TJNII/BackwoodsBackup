@@ -14,7 +14,7 @@ require_relative '../../lib/backup_engine/encryption/engine.rb'
 # Note that the cleaner is also called in the backup engine functional spec to ensure it doesn't remove things it shouldn't.
 describe 'Cleaner: Functional' do
   let(:logger) do
-    logger = Logger.new(STDOUT)
+    logger = Logger.new('/dev/null')
     logger.level = Logger::INFO
     logger
   end

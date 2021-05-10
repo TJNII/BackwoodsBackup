@@ -19,7 +19,7 @@ describe 'Backup Engine: Functional' do
   target_paths = Pathname.new('/').children.sort.freeze
 
   before :all do
-    @logger = Logger.new(STDOUT)
+    @logger = Logger.new('/dev/null')
     @communicator = BackupEngine::Communicator.new(type: 'filesystem', backend_config: { base_path: '/tmp/test_backup_output' }, logger: @logger)
 
     @encryption_keys = {}.tap do |h|

@@ -12,4 +12,4 @@ services:
       - redis:redis
     environment:
       REDIS_URL: redis://redis
-    command: bundle exec rspec --fail-fast -fd
+    command: bundle exec rspec --fail-fast
