@@ -68,6 +68,45 @@ This needs to be run in EC2 for both speed and cost.
 docker run --rm -ti -v /etc/backwoods_backup:/config:ro tjnii/backwoods-backup:latest clean -f /config/cleaner_config.yml
 ```
 
+Searching Manifests
+-------------------
+
+The `search` utility allows searching for files within a single manifest.
+Searching across manifests is not currently supported.
+
+When searching the following must be known:
+
+- The manifest path, starting with manifests/.  This is in the backup output, and can be looked up via ls for filesystem backups and in the AWS S3 console.
+- A regex matching the target files to search for. `.*` is valid to show all.
+
+The `search` utility uses the restore code and currently requires a restore key, `manifest_only_keys` are currently not supported for searching.
+
+### Filesystem communicator search
+
+Example Assumptions:
+- Config files in /etc/backwoods_backup
+- Filesystem backup directory in /mnt/backups
+- Target manifest at manifests/myhost/myset/1548029915
+- All files will be displayed
+
+```bash
+# Note the read only volume binds
+docker run --rm -ti -v /mnt/backups:/backups:ro -v /etc/backwoods_backup:/config:ro tjnii/backwoods-backup:latest search -f /config/restore_config.yml -t '.*' -m manifests/myhost/myset/1548029915
+```
+
+### S3 communicator restore
+
+Example Assumptions:
+- Config files in /etc/backwoods_backup
+- Target manifest at manifests/myhost/myset/1548029915
+- All files will be displayed
+
+```bash
+# Note the read only volume binds
+docker run --rm -ti -v /etc/backwoods_backup:/config:ro tjnii/backwoods-backup:latest search -f /config/restore_config.yml -t '.*' -m manifests/myhost/myset/1548029915
+```
+
+
 Restore
 -------
 
@@ -89,7 +128,7 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /mnt/backups:/backups:ro -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
+docker run --rm -ti -v /mnt/backups:/backups:ro -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest restore -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
 ```
 
 ### S3 communicator restore
@@ -102,5 +141,5 @@ Example Assumptions:
 
 ```bash
 # Note the read only volume binds
-docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
+docker run --rm -ti -v /etc/backwoods_backup:/config:ro -v /tmp/restore:/restore tjnii/backwoods-backup:latest restore -f /config/restore_config.yml -t '.*' -o /restore -m manifests/myhost/myset/1548029915
 ```

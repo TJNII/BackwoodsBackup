@@ -31,16 +31,21 @@ module BackupEngine
         def decrypt(path:)
           keys.each_pair do |key_id, key_values|
             if key_values[:private].nil?
-              @logger.error("No private key for #{key_values[:name]}")
+              @logger.error("ASymmetricRSA.decrypt(path: #{path}): No private key for #{key_values[:name]}")
               next
             end
 
             # Roll through the keys until we find one we have
-            next unless @communicator.exists?(path: symmetric_key_path(base_path: path, key_id: key_id))
+            key_path = symmetric_key_path(base_path: path, key_id: key_id)
+            unless @communicator.exists?(path: key_path)
+              @logger.debug("ASymmetricRSA.decrypt(path: #{path}): Skipping key #{key_values[:name]} (#{key_path}): Not found")
+              next
+            end
 
-            communicator_payload = @communicator.download(path: symmetric_key_path(base_path: path, key_id: key_id))
+            communicator_payload = @communicator.download(path: key_path)
             raise("Algorithm Mismatch: RSA:#{communicator_payload[:metadata][:encryption][:algorithm]}") if communicator_payload[:metadata][:encryption][:algorithm] != 'RSA'
 
+            @logger.debug("ASymmetricRSA.decrypt(path: #{path}): Using key #{key_values[:name]}")
             private_key_obj = OpenSSL::PKey::RSA.new(key_values[:private])
             key = private_key_obj.private_decrypt(communicator_payload[:payload])
             return symmetric_decrypt(key: key, path: communicator_payload[:metadata][:encryption][:target][:path], algorithm: communicator_payload[:metadata][:encryption][:target][:algorithm])

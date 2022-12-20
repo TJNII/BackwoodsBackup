@@ -15,6 +15,7 @@ module BackupEngine
 
       def restore_manifest(manifest_path:, restore_path:, target_path_regex:)
         manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
+        @logger.debug('Manifest download complete')
         @logger.warn('Manifest is incomplete and will be missing files') if manifest.partial
 
         _targeted_manifest(manifest: manifest.manifest, target_path_regex: target_path_regex).each_pair do |path_obj, metadata|
@@ -34,6 +35,16 @@ module BackupEngine
           else
             raise("Unknown file type #{type} for #{path}")
           end
+        end
+      end
+
+      def search_manifest(manifest_path:, target_path_regex:)
+        manifest = BackupEngine::Manifest.download(path: manifest_path, encryption_engine: @encryption_engine)
+        @logger.debug('Manifest download complete')
+        @logger.warn('Manifest is incomplete and will be missing files') if manifest.partial
+
+        _targeted_manifest(manifest: manifest.manifest, target_path_regex: target_path_regex).each_pair do |path_obj, metadata|
+          @logger.info("Found Match: #{path_obj} (#{metadata.type})")
         end
       end
 
