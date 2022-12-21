@@ -28,7 +28,7 @@ module BackupEngine
       private
 
       def _parse_communicator_block(config)
-        @communicator = BackupEngine::Communicator.new(config.merge(logger: @logger))
+        @communicator = BackupEngine::Communicator.new(**config.merge(logger: @logger))
       end
 
       def _parse_encryption_block(config)

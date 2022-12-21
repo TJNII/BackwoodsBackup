@@ -5,6 +5,7 @@ gem 'bindata', '~> 2.4'
 gem 'concurrent-ruby', '~> 1.1'
 gem 'connection_pool', '~> 2.2'
 gem 'openssl', '~> 2.1'
+gem 'ox', '~> 2.0' # Dependency of aws-sdk-s3 on Ruby 3
 gem 'powerpack', '~> 0.1'
 gem 'redis', '~> 4.1'
 gem 'yaml_extend', '~> 0.2'

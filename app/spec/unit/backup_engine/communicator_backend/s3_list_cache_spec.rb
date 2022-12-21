@@ -7,7 +7,7 @@ require_relative '../../../../lib/backup_engine/communicator_backend/s3_list_cac
 describe 'Backup Engine: unit' do
   describe BackupEngine::CommunicatorBackend::S3ListCache do
     shared_examples 'cache behavior' do
-      let(:test_obj) { described_class.new(test_config) { |_| nil } }
+      let(:test_obj) { described_class.new(**test_config) { |_| nil } }
 
       describe 'add' do
         it 'adds to the cache' do
@@ -193,7 +193,7 @@ describe 'Backup Engine: unit' do
         let(:seed_values) { Array.new(10) { [Array.new(3) { SecureRandom.hex }.join('/'), rand(0..1000)] }.to_h }
 
         let(:test_obj) do
-          described_class.new(test_config) do |cache_obj|
+          described_class.new(**test_config) do |cache_obj|
             # Test: Cache should never seed unless empty
             raise('Attempted to seed non-empty cache') unless cache_obj.cache.empty?
 
@@ -204,7 +204,7 @@ describe 'Backup Engine: unit' do
         end
 
         let(:incomplete_loader) do
-          described_class.new(test_config) do |cache_obj|
+          described_class.new(**test_config) do |cache_obj|
             # Write a single value to ensure the backend object exists
             cache_obj.add(path: seed_values.keys[0], date: seed_values.values[0])
             raise('Oh bother')
@@ -371,7 +371,7 @@ describe 'Backup Engine: unit' do
         end
 
         let(:test_obj) do
-          described_class.new(test_config) do |block_test_obj|
+          described_class.new(**test_config) do |block_test_obj|
             puts ''
             2.times do |level_1_idx|
               100000.times do |level_2_idx|

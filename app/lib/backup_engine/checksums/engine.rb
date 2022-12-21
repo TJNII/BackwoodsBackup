@@ -23,7 +23,7 @@ module BackupEngine
 
           return BackupEngine::Checksums::Result.new(algorithm: split_str[0], checksum: split_str[1])
         elsif input.is_a? Hash
-          return BackupEngine::Checksums::Result.new(input.symbolize_keys)
+          return BackupEngine::Checksums::Result.new(**input.symbolize_keys)
         else
           raise("Cannot parse input type #{input.class}")
         end

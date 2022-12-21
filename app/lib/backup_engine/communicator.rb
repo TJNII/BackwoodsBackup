@@ -9,9 +9,9 @@ module BackupEngine
     def initialize(type:, backend_config:, logger:)
       @backend = case type
                  when 'filesystem'
-                   CommunicatorBackend::Filesystem.new(backend_config.symbolize_keys)
+                   CommunicatorBackend::Filesystem.new(**backend_config.symbolize_keys)
                  when 's3'
-                   CommunicatorBackend::S3.new(backend_config.symbolize_keys.merge(logger: logger))
+                   CommunicatorBackend::S3.new(**backend_config.symbolize_keys.merge(logger: logger))
                  else
                    raise("Unknown communicator type #{type}")
                  end
