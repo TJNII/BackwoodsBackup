@@ -9,7 +9,7 @@ RUN apt-get update && \
 ENV LANG en_US.UTF-8
 ENV LC_ALL en_US.UTF-8
 
-COPY app/Gemfile /app/Gemfile
+COPY app/Gemfile app/Gemfile.lock /app/
 WORKDIR /app
 RUN bundle install
 

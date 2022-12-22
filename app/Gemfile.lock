@@ -3,7 +3,7 @@ GEM
   specs:
     ast (2.4.2)
     aws-eventstream (1.2.0)
-    aws-partitions (1.680.0)
+    aws-partitions (1.681.0)
     aws-sdk-core (3.168.4)
       aws-eventstream (~> 1, >= 1.0.2)
       aws-partitions (~> 1, >= 1.651.0)
@@ -29,12 +29,16 @@ GEM
     jmespath (1.6.2)
     openssl (2.2.2)
       ipaddr
+    ox (2.14.11)
     parallel (1.22.1)
     parser (3.1.3.0)
       ast (~> 2.4.1)
     powerpack (0.1.3)
     rainbow (3.1.1)
-    redis (4.8.0)
+    redis (5.0.5)
+      redis-client (>= 0.9.0)
+    redis-client (0.11.2)
+      connection_pool
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -66,7 +70,7 @@ GEM
     unicode-display_width (1.4.1)
     yaml_extend (0.2.5)
       deep_merge (~> 1.1)
-    zlib (1.1.0)
+    zlib (3.0.0)
 
 PLATFORMS
   ruby
@@ -77,13 +81,14 @@ DEPENDENCIES
   concurrent-ruby (~> 1.1)
   connection_pool (~> 2.2)
   openssl (~> 2.1)
+  ox (~> 2.0)
   powerpack (~> 0.1)
-  redis (~> 4.1)
+  redis (~> 5.0)
   rspec (~> 3.8)
   rubocop (~> 0.63.0)
   simplecov (~> 0.16)
   yaml_extend (~> 0.2)
-  zlib (~> 1.0)
+  zlib (~> 3.0)
 
 BUNDLED WITH
-   2.2.17
+   2.3.26
