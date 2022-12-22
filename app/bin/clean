@@ -33,7 +33,7 @@ def main
   config = BackupEngine::Config::CleanConfig.new(path: options[:config_file])
   config.logger.level = Logger::DEBUG if options[:verbose]
 
-  BackupEngine::Cleaner.clean(config.to_engine_hash)
+  BackupEngine::Cleaner.clean(**config.to_engine_hash)
 end
 
 main

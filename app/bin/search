@@ -44,7 +44,7 @@ def main
   config = BackupEngine::Config::RestoreConfig.new(path: options[:config_file])
   config.logger.level = Logger::DEBUG if options[:verbose]
 
-  restore_engine = BackupEngine::RestoreClient::Engine.new(config.to_engine_hash)
+  restore_engine = BackupEngine::RestoreClient::Engine.new(**config.to_engine_hash)
   restore_engine.search_manifest(manifest_path: BackupEngine::Pathname.new(options[:manifest]),
                                  target_path_regex: options[:target_path])
 end

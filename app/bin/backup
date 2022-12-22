@@ -44,7 +44,7 @@ def main
   config = BackupEngine::Config::BackupConfig.new(path: options[:config_file])
   config.logger.level = Logger::DEBUG if options[:verbose]
 
-  backup_engine = BackupEngine::BackupClient::Engine.new(config.to_engine_hash)
+  backup_engine = BackupEngine::BackupClient::Engine.new(**config.to_engine_hash)
 
   config.manifest.partial = true
   begin
