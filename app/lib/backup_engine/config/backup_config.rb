@@ -9,7 +9,7 @@ module BackupEngine
       attr_reader :docker_host_bind_path, :set_name, :manifest
 
       def initialize(kwargs)
-        super(kwargs) do |config|
+        super(**kwargs) do |config|
           # Mandatory blocks
           @paths = config.fetch(:paths)
           @host = config.fetch(:host)
