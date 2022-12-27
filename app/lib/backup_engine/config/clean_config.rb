@@ -6,7 +6,7 @@ module BackupEngine
       attr_reader :min_block_age, :min_manifest_age, :min_set_manifests, :verify_block_checksum
 
       def initialize(kwargs)
-        super(kwargs) do |config|
+        super(**kwargs) do |config|
           _parse_cleaner_block(config.fetch(:cleaner).symbolize_keys)
         end
       end
