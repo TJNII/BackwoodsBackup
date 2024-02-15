@@ -201,6 +201,11 @@ chunk_size: 20971520
 tempdirs:
   1073741824: /ramdisk
   1125899906842624: /spool
+
+# Socket behavior: What to do when encountering a socket
+# One of halt, ignore
+# OPTIONAL: Default: halt
+socket_behavior: ignore
 ```
 
 ### Complete Example:

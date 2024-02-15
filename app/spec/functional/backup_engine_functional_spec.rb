@@ -45,7 +45,8 @@ describe 'Backup Engine: Functional' do
                                                             chunk_size: (512 * 1024), # Test with a small block size
                                                             logger: @logger,
                                                             path_exclusions: excluded_paths.map { |path| "^#{path}" },
-                                                            tempdirs: { (1024**3) => '/ramdisk' })
+                                                            tempdirs: { (1024**3) => '/ramdisk' },
+                                                            socket_behavior: 'halt')
   end
 
   target_paths.each do |path|

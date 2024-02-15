@@ -1,4 +1,5 @@
 require_relative 'config_base.rb'
+require_relative '../backup_client/engine.rb'
 require_relative '../checksums/engine.rb'
 require_relative '../compression/engine.rb'
 
@@ -19,6 +20,7 @@ module BackupEngine
           @checksum_engine = BackupEngine::Checksums::Engine.init_engine(algorithm: config.fetch(:checksum_algorithm, 'sha256'))
           @compression_engine = BackupEngine::Compression::Engine.init_engine(algorithm: config.fetch(:compression_algorithm, 'zlib'))
           @path_exclusions = config.fetch(:path_exclusions, [])
+          @socket_behavior = _parse_socket_behavior_block(config.fetch(:socket_behavior, 'halt'))
 
           @chunk_size = config.fetch(:chunk_size, (20 * 1024 * 1024))
           @logger.warn('Chunk sizes under 128KB or over 30MB may result in increased S3 costs and/or degraded performance') if @chunk_size < (128 * 1024) || @chunk_size > (30 * 1024 * 1024)
@@ -42,10 +44,12 @@ module BackupEngine
           checksum_engine: @checksum_engine,
           encryption_engine: @encryption_engine,
           compression_engine: @compression_engine,
-          manifest: @manifest,
+
           chunk_size: @chunk_size,
           logger: @logger,
+          manifest: @manifest,
           path_exclusions: @path_exclusions,
+          socket_behavior: @socket_behavior,
           tempdirs: @tempdirs
         }
       end
@@ -72,6 +76,12 @@ module BackupEngine
         end
 
         @tempdirs = config
+      end
+
+      def _parse_socket_behavior_block(value)
+        raise(ParseError, "Error parsing socket_behavior config: Unknown value #{value}.  Valid values: #{BackupEngine::BackupClient::Engine::VALID_SOCKET_BEHAVIOR}") unless BackupEngine::BackupClient::Engine::VALID_SOCKET_BEHAVIOR.include?(value)
+
+        return value
       end
     end
   end

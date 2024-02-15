@@ -1,13 +1,16 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2024-02-14
+- Added `socket_behavior` backup option
+
 ## [1.3.0] - 2022-12-19
 ### Fixes
 - Improve logging and documentation
 
 ### Added
 - Initial search utility
-	
+
 ## [1.2.1] - 2020-02-17
 ### Fixes
 - Fix errors in script help blurbs

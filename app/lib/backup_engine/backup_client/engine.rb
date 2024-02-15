@@ -10,16 +10,19 @@ module BackupEngine
     end
 
     class Engine
+      VALID_SOCKET_BEHAVIOR = %w[halt ignore].freeze
+
       attr_reader :checksum_engine, :communicator, :manifest, :encryption_engine, :compression_engine, :chunk_size
 
-      def initialize(checksum_engine:, encryption_engine:, compression_engine:, chunk_size:, logger:, manifest:, path_exclusions: [], tempdirs: {})
+      def initialize(checksum_engine:, encryption_engine:, compression_engine:, chunk_size:, logger:, manifest:, socket_behavior:, path_exclusions: [], tempdirs: {})
         @checksum_engine = checksum_engine
-        @manifest = manifest
-        @encryption_engine = encryption_engine
-        @compression_engine = compression_engine
         @chunk_size = chunk_size
+        @compression_engine = compression_engine
+        @encryption_engine = encryption_engine
         @logger = logger
+        @manifest = manifest
         @path_exclusions = path_exclusions.freeze
+        @socket_behavior = socket_behavior
         @tempdirs = tempdirs.freeze
       end
 
@@ -44,6 +47,8 @@ module BackupEngine
           _backup_fifo(path: path, stat: stat)
         when :directory
           _backup_directory(path: path, stat: stat)
+        when :socket
+          _backup_socket(path: path, stat: stat)
         else
           raise(BackupEngine::BackupClient::UnsupportedFileType, "#{path}: Unsupported file type #{stat.file_type}")
         end
@@ -110,6 +115,18 @@ module BackupEngine
       def _backup_fifo(path:, stat:)
         @manifest.create_fifo_backup_entry(path: path, stat: stat)
         @logger.info("#{path}: backed up")
+      end
+
+      def _backup_socket(path:, stat:)
+        case @socket_behavior
+        when 'halt'
+          raise(BackupEngine::BackupClient::UnsupportedFileType, "#{path}: Unsupported file type #{stat.file_type}")
+        when 'ignore'
+          @logger.debug("#{path}: Ignoring #{stat.file_type}")
+        else
+          # This is supposed to be validated in BackupEngine::Config::BackupConfig
+          raise(StandardError, "INTERNAL ERROR: Unknown socket_behavior #{@socket_behavior}")
+        end
       end
 
       def _backup_symlink(path:)
