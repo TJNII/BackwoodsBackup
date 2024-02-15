@@ -284,6 +284,7 @@ describe 'Backup Engine: unit' do
         end
 
         let(:delete_thread) do
+          delete_paths # Seed the delete objects before launching the thread
           Thread.new do
             delete_paths.each do |path|
               test_obj.delete(path: path)

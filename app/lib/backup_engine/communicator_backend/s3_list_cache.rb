@@ -39,9 +39,10 @@ module BackupEngine
       end
 
       def add(path:, date:)
-        _invalidate_index # Invalidate the index as it must be sorted rather than try and inject at the right index
         path_obj = _sanitize_path(path: path)
         @index_lock.synchronize do
+          _invalidate_index_within_index_lock # Invalidate the index as it must be sorted rather than try and inject at the right index
+
           ([path_obj] + path_obj.fully_qualified_parent_directories.reverse).each do |sub_path_obj|
             break if @cache.fetch(sub_path_obj.to_s, 0).to_f >= date
 
@@ -66,10 +67,11 @@ module BackupEngine
         # This can also be done with a Redis sorted set using zrangebylex
         # Using an in-memory array as it's compatible with in-memory caches, relatively performant, and skirts TTL problems.
 
-        if path_str == BackupEngine::Pathname::SEPARATOR
-          matching_paths = index[1..-1]
-        else
-          @index_lock.synchronize do
+        matching_paths = nil
+        @index_lock.synchronize do
+          if path_str == BackupEngine::Pathname::SEPARATOR
+            matching_paths = _index[1..-1]
+          else
             index_start = _index.bsearch_index { |k| path_str <=> k }
             raise("INTERNAL ERROR: Failed to locate index of #{path_str}") if index_start.nil?
 
@@ -111,8 +113,10 @@ module BackupEngine
         raise(Errno::ENOENT, "Unknown path #{path}") unless exists?(path: path_obj)
 
         ([path_obj.to_s] + children(path: path_obj, fully_qualified: true, depth: -1)).each do |tgt_path|
-          @cache.delete(tgt_path.to_s)
-          _delete_from_index(tgt_path)
+          @index_lock.synchronize do
+            @cache.delete(tgt_path.to_s)
+            _delete_from_index(tgt_path)
+          end
         end
 
         # As S3 doesn't have directories the parent will no longer exist if the child is empty
@@ -120,8 +124,10 @@ module BackupEngine
           next unless exists?(path: parent_path_obj)
           break unless children(path: parent_path_obj).empty?
 
-          @cache.delete(parent_path_obj.to_s)
-          _delete_from_index(parent_path_obj.to_s)
+          @index_lock.synchronize do
+            @cache.delete(parent_path_obj.to_s)
+            _delete_from_index(parent_path_obj.to_s)
+          end
         end
       end
 
@@ -158,6 +164,7 @@ module BackupEngine
       end
 
       def _delete_from_index(key)
+        raise('INTERNAL ERROR: NO LOCK') unless @index_lock.owned?
         raise("INTERNAL ERROR: delete_from_index: Key #{key} not found") if @index&.delete(key.to_s).nil? && !@index.nil?
       end
 
@@ -178,8 +185,14 @@ module BackupEngine
 
       def _invalidate_index
         @index_lock.synchronize do
-          @index = nil
+          _invalidate_index_within_index_lock
         end
+      end
+
+      def _invalidate_index_within_index_lock
+        raise('INTERNAL ERROR: NO LOCK') unless @index_lock.owned?
+
+        @index = nil
       end
 
       def _sanitize_path(path:)
