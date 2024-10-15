@@ -1,10 +1,13 @@
 source 'https://rubygems.org'
 
 gem 'aws-sdk-s3', '~> 1.0'
+gem 'base64', '~> 0.2'
 gem 'bindata', '~> 2.4'
 gem 'concurrent-ruby', '~> 1.1'
+gem 'logger', '~> 1.6'
 gem 'connection_pool', '~> 2.2'
 gem 'openssl', '~> 3.1'
+gem 'ostruct', '~> 0.6'
 gem 'ox', '~> 2.0' # Dependency of aws-sdk-s3 on Ruby 3
 gem 'powerpack', '~> 0.1'
 gem 'redis', '~> 5.0'
