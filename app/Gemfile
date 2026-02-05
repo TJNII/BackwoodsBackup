@@ -19,6 +19,3 @@ group 'development' do
   gem 'rubocop', '~> 0.63.0'
   gem 'simplecov', '~> 0.16'
 end
-
-# Debug
-gem 'aws-sdk-core', '= 3.209.1'
