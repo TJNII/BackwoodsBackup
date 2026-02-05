@@ -44,6 +44,11 @@ module BackupEngineTestHelpers
 
         @buckets[context.params[:bucket]].delete(object_param[:key])
       end
+
+      return {
+        deleted: context.params[:delete][:objects],
+        errors: []
+      }
     end
 
     def _stub_get_object(context)
