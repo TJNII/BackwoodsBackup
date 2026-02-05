@@ -74,7 +74,7 @@ module BackupEngineTestHelpers
       @buckets[context.params[:bucket]][context.params[:key]] = {
         last_modified: Time.now,
         content_length: context.params[:body].length
-      }.merge(context.params.reject { |k, _| %i[bucket key].include?(k) })
+      }.merge(context.params.reject { |k, _| %i[bucket key checksum_algorithm].include?(k) })
 
       return {}
     end
